@@ -88,6 +88,45 @@ APP_BASE_NAME=${0##*/}
 # Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
 APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s\n' "$PWD" ) || exit
 
+# Verify gradle-wrapper.jar integrity and auto-download if corrupted or missing
+WRAPPER_JAR="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+IS_CORRUPT=0
+if [ ! -f "$WRAPPER_JAR" ]; then
+    IS_CORRUPT=1
+else
+    # Check if unzip, python3, or file can verify it
+    if command -v unzip >/dev/null 2>&1; then
+        if ! unzip -t "$WRAPPER_JAR" >/dev/null 2>&1; then
+            IS_CORRUPT=1
+        fi
+    elif command -v python3 >/dev/null 2>&1; then
+        if ! python3 -c "import zipfile; zipfile.ZipFile('$WRAPPER_JAR').testzip()" >/dev/null 2>&1; then
+            IS_CORRUPT=1
+        fi
+    elif command -v file >/dev/null 2>&1; then
+        if ! file "$WRAPPER_JAR" | grep -q "Zip archive"; then
+            IS_CORRUPT=1
+        fi
+    fi
+fi
+
+if [ "$IS_CORRUPT" -eq 1 ]; then
+    echo "gradle-wrapper.jar is missing or corrupted. Auto-downloading clean version..."
+    GRADLE_VERSION=$(grep 'distributionUrl' "$APP_HOME/gradle/wrapper/gradle-wrapper.properties" | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?')
+    if [ -z "$GRADLE_VERSION" ]; then
+        GRADLE_VERSION="9.3.1"
+    fi
+    mkdir -p "$APP_HOME/gradle/wrapper"
+    DOWNLOAD_URL="https://raw.githubusercontent.com/gradle/gradle/v${GRADLE_VERSION}/gradle/wrapper/gradle-wrapper.jar"
+    if command -v curl >/dev/null 2>&1; then
+        curl -sSL -o "$WRAPPER_JAR" "$DOWNLOAD_URL"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -q -O "$WRAPPER_JAR" "$DOWNLOAD_URL"
+    elif command -v python3 >/dev/null 2>&1; then
+        python3 -c "import urllib.request; urllib.request.urlretrieve('$DOWNLOAD_URL', '$WRAPPER_JAR')" >/dev/null 2>&1
+    fi
+fi
+
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD=maximum
 

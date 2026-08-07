@@ -68,6 +68,9 @@ echo location of your Java installation. 1>&2
 goto fail
 
 :execute
+@rem Check if gradle-wrapper.jar exists and is valid. If not, auto-download it using PowerShell.
+powershell -Command "try { $path = '%APP_HOME%\gradle\wrapper\gradle-wrapper.jar'; $needsDownload = $false; if (-not (Test-Path $path)) { $needsDownload = $true } else { $bytes = [System.IO.File]::ReadAllBytes($path); if ($bytes.Length -ne 46175 -or ($bytes[0] -ne 0x50 -or $bytes[1] -ne 0x4B)) { $needsDownload = $true } }; if ($needsDownload) { echo 'gradle-wrapper.jar is missing or corrupted. Downloading clean copy...'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $url = 'https://raw.githubusercontent.com/gradle/gradle/v9.3.1/gradle/wrapper/gradle-wrapper.jar'; (New-Object System.Net.WebClient).DownloadFile($url, $path) } } catch {}" >nul 2>&1
+
 @rem Setup the command line
 
 
