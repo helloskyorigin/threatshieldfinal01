@@ -550,7 +550,17 @@ fun HomeScreen(
     }
 
     if (showLimitReachedDialog) {
-        val activity = LocalContext.current as? android.app.Activity
+        val context = LocalContext.current
+        val activity = remember(context) {
+            var currentContext = context
+            while (currentContext is android.content.ContextWrapper) {
+                if (currentContext is android.app.Activity) {
+                    break
+                }
+                currentContext = currentContext.baseContext
+            }
+            currentContext as? android.app.Activity
+        }
         AlertDialog(
             onDismissRequest = { showLimitReachedDialog = false },
             title = { Text(if (isHindi) "और स्कैन चाहिए?" else "Need More Scans?", fontWeight = FontWeight.Bold) },

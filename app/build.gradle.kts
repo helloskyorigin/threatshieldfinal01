@@ -67,9 +67,9 @@ android {
       val kFile = file(keystorePath)
       if (kFile.exists()) {
         storeFile = kFile
-        storePassword = System.getenv("STORE_PASSWORD") ?: ""
+        storePassword = System.getenv("STORE_PASSWORD") ?: "threatshield123"
         keyAlias = System.getenv("KEY_ALIAS") ?: "threatshield-upload"
-        keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+        keyPassword = System.getenv("KEY_PASSWORD") ?: "threatshield123"
       } else {
         storeFile = file("${rootDir}/debug.keystore")
         storePassword = "android"
