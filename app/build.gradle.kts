@@ -114,7 +114,7 @@ android {
       buildConfigField("String", "BANNER_AD_UNIT_ID", "\"${releaseBannerId}\"")
       buildConfigField("String", "REWARDED_AD_UNIT_ID", "\"${releaseRewardedId}\"")
 
-      firebaseCrashlytics {
+      configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
         mappingFileUploadEnabled = false
       }
     }
