@@ -96,7 +96,7 @@ fun GetStartedScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.threat),
+                    painter = painterResource(id = R.drawable.threat_android),
                     contentDescription = "ThreatShield AI Logo",
                     modifier = Modifier
                         .size(340.dp)

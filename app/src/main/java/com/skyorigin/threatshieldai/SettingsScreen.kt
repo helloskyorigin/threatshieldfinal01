@@ -109,7 +109,7 @@ fun SettingsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.threat),
+                        painter = painterResource(id = R.drawable.threat_android),
                         contentDescription = "ThreatShield AI Logo",
                         modifier = Modifier.size(230.dp),
                         contentScale = ContentScale.Fit

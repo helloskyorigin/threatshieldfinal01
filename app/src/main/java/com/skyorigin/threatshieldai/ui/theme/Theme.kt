@@ -168,7 +168,7 @@ fun OfficialBrandLogo(
     contentScale: ContentScale = ContentScale.Fit,
     noBackground: Boolean = false
 ) {
-    val logoRes = com.skyorigin.threatshieldai.R.drawable.threat
+    val logoRes = com.skyorigin.threatshieldai.R.drawable.threat_android
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
