@@ -113,6 +113,10 @@ android {
       manifestPlaceholders["adMobAppId"] = releaseAppId
       buildConfigField("String", "BANNER_AD_UNIT_ID", "\"${releaseBannerId}\"")
       buildConfigField("String", "REWARDED_AD_UNIT_ID", "\"${releaseRewardedId}\"")
+
+      firebaseCrashlytics {
+        mappingFileUploadEnabled = false
+      }
     }
     debug {
       signingConfig = signingConfigs.getByName("debugConfig")
