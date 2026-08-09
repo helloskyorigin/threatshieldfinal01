@@ -675,7 +675,7 @@ fun AnalysisLoadingScreen(
 
                 // Official Hero Master Shield Logo
                 Image(
-                    painter = painterResource(id = R.drawable.threat_android),
+                    painter = painterResource(id = R.drawable.threat),
                     contentDescription = "ThreatShield AI Logo",
                     modifier = Modifier
                         .size(150.dp)
