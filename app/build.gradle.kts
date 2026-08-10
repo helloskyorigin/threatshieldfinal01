@@ -86,6 +86,7 @@ android {
         }
       }
       storeFile = kFile
+      storeType = "JKS"
       storePassword = System.getenv("STORE_PASSWORD") ?: "threatshield123"
       keyAlias = System.getenv("KEY_ALIAS") ?: "threatshield-upload"
       keyPassword = System.getenv("KEY_PASSWORD") ?: "threatshield123"
