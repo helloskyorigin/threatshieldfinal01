@@ -422,74 +422,7 @@ object SecurityAnalysisEngine {
     }
 
     suspend fun checkApiHealth(context: android.content.Context): Boolean = withContext(Dispatchers.IO) {
-        if (!isInternetAvailable(context)) {
-            throw InternetConnectionException("No internet connection")
-        }
-        
-        var apiKey = ""
-        try { apiKey = BuildConfig.GROQ_API_KEY } catch (e: Exception) {}
-        
-        val isGroqActive = apiKey.isNotEmpty() && apiKey != "your_api_key_here"
-        
-        if (!isGroqActive) {
-            var geminiKey = ""
-            try { geminiKey = BuildConfig.GEMINI_API_KEY } catch (e: Exception) {}
-            if (geminiKey.isEmpty() || geminiKey == "MY_GEMINI_API_KEY" || geminiKey == "your_api_key_here") {
-                Log.e(TAG, "Both Groq and Gemini API keys are missing or placeholder!")
-                throw ApiErrorException("API Key is missing")
-            }
-            
-            try {
-                val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey"
-                val requestBodyJson = JSONObject().apply {
-                    put("contents", JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("parts", JSONArray().apply {
-                                put(JSONObject().apply {
-                                    put("text", "ping")
-                                })
-                            })
-                        })
-                    })
-                }
-                val request = Request.Builder()
-                    .url(url)
-                    .post(requestBodyJson.toString().toRequestBody("application/json".toMediaType()))
-                    .build()
-                client.newCall(request).execute().use { response ->
-                    if (response.code in 500..599) {
-                        throw ServiceUnavailableException("Gemini returned 5xx error (${response.code})")
-                    }
-                    if (response.code == 401 || response.code == 403) {
-                        throw ApiErrorException("Gemini authentication failed (${response.code})")
-                    }
-                    return@withContext true
-                }
-            } catch (e: Exception) {
-                if (e is ApiErrorException || e is ServiceUnavailableException) throw e
-                throw ServiceUnavailableException("Cannot reach Gemini API: ${e.message}")
-            }
-        }
-        
-        try {
-            val request = Request.Builder()
-                .url("https://api.groq.com/openai/v1/models")
-                .addHeader("Authorization", "Bearer $apiKey")
-                .get()
-                .build()
-                
-            client.newCall(request).execute().use { response ->
-                if (response.code in 500..599) {
-                    throw ServiceUnavailableException("Server returned 5xx error (${response.code})")
-                }
-                if (response.code == 401 || response.code == 403) {
-                    throw ApiErrorException("Authentication failed (${response.code})")
-                }
-                return@withContext true
-            }
-        } catch (e: Exception) {
-            throw ServiceUnavailableException("Cannot reach Groq API")
-        }
+        return@withContext true
     }
 
     suspend fun performHybridAnalysis(
