@@ -4,12 +4,14 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -170,7 +172,8 @@ fun SettingsScreen(
                         },
                         onClick = { showLanguageDialog = true },
                         textColor = textPrimary,
-                        subColor = textSecondary
+                        subColor = textSecondary,
+                        iconColor = Color(0xFF06B6D4)
                     )
                     Text(
                         text = "Language selection applies only to scan results. The rest of the app remains in English.",
@@ -190,7 +193,8 @@ fun SettingsScreen(
                     },
                     onClick = { showThemeDialog = true },
                     textColor = textPrimary,
-                    subColor = textSecondary
+                    subColor = textSecondary,
+                    iconColor = Color(0xFF8B5CF6)
                 )
             }
 
@@ -211,7 +215,8 @@ fun SettingsScreen(
                     subtitle = if (isHindi) "अपना पिछला एनालिसिस इतिहास देखें" else "View your past analysis history",
                     onClick = onNavigateToHistory,
                     textColor = textPrimary,
-                    subColor = textSecondary
+                    subColor = textSecondary,
+                    iconColor = Color(0xFF06B6D4)
                 )
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
@@ -230,7 +235,8 @@ fun SettingsScreen(
                         }
                     },
                     textColor = com.skyorigin.threatshieldai.ui.theme.PremiumColors.Danger,
-                    subColor = textSecondary
+                    subColor = textSecondary,
+                    iconColor = Color(0xFFEF4444)
                 )
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
@@ -241,7 +247,8 @@ fun SettingsScreen(
                         showStatsDialog = true
                     },
                     textColor = textPrimary,
-                    subColor = textSecondary
+                    subColor = textSecondary,
+                    iconColor = Color(0xFF3B82F6)
                 )
             }
 
@@ -268,7 +275,8 @@ fun SettingsScreen(
                         showFeedbackDialogFromSettings = true
                     },
                     textColor = textPrimary,
-                    subColor = textSecondary
+                    subColor = textSecondary,
+                    iconColor = Color(0xFFF59E0B)
                 )
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
@@ -283,7 +291,8 @@ fun SettingsScreen(
                         showFeedbackDialogFromSettings = true
                     },
                     textColor = textPrimary,
-                    subColor = textSecondary
+                    subColor = textSecondary,
+                    iconColor = Color(0xFFF97316)
                 )
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
@@ -298,7 +307,8 @@ fun SettingsScreen(
                         showFeedbackDialogFromSettings = true
                     },
                     textColor = textPrimary,
-                    subColor = textSecondary
+                    subColor = textSecondary,
+                    iconColor = Color(0xFF8B5CF6)
                 )
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
@@ -313,7 +323,8 @@ fun SettingsScreen(
                         showFeedbackDialogFromSettings = true
                     },
                     textColor = textPrimary,
-                    subColor = textSecondary
+                    subColor = textSecondary,
+                    iconColor = Color(0xFF3B82F6)
                 )
             }
 
@@ -334,16 +345,18 @@ fun SettingsScreen(
                     subtitle = if (isHindi) "नियम, गोपनीयता और नीतियां" else "Terms, privacy policy, and safety info",
                     onClick = { onNavigateToDoc("legal_portal") },
                     textColor = textPrimary,
-                    subColor = textSecondary
+                    subColor = textSecondary,
+                    iconColor = Color(0xFF6366F1)
                 )
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
-                    icon = Icons.Rounded.HelpOutline,
+                    icon = Icons.AutoMirrored.Rounded.HelpOutline,
                     title = if (isHindi) "Frequently Asked Questions (FAQ)" else "Frequently Asked Questions (FAQ)",
                     subtitle = if (isHindi) "अक्सर पूछे जाने वाले प्रश्न" else "Find answers to common questions",
                     onClick = onNavigateToFaq,
                     textColor = textPrimary,
-                    subColor = textSecondary
+                    subColor = textSecondary,
+                    iconColor = Color(0xFF06B6D4)
                 )
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
@@ -352,7 +365,8 @@ fun SettingsScreen(
                     subtitle = if (isHindi) "ThreatShield AI के बारे में" else "About the app",
                     onClick = onNavigateToAbout,
                     textColor = textPrimary,
-                    subColor = textSecondary
+                    subColor = textSecondary,
+                    iconColor = Color(0xFF3B82F6)
                 )
             }
 
@@ -753,8 +767,10 @@ private fun SettingsRow(
     subtitle: String,
     onClick: () -> Unit,
     textColor: Color,
-    subColor: Color
+    subColor: Color,
+    iconColor: Color = PremiumColors.PrimaryAccent
 ) {
+    val isDark = LocalIsDark.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -762,12 +778,20 @@ private fun SettingsRow(
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = if (textColor == PremiumColors.Danger) PremiumColors.Danger else PremiumColors.PrimaryAccent,
-            modifier = Modifier.size(24.dp)
-        )
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(iconColor.copy(alpha = if (isDark) 0.16f else 0.08f), RoundedCornerShape(10.dp))
+                .border(BorderStroke(1.dp, iconColor.copy(alpha = 0.25f)), RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = iconColor,
+                modifier = Modifier.size(20.dp)
+            )
+        }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1.0f)) {
             Text(
