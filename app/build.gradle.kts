@@ -63,33 +63,12 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/threatshield-upload-key.jks"
-      val kFile = file(keystorePath)
-      if (!kFile.exists() && keystorePath == "${rootDir}/threatshield-upload-key.jks") {
-        try {
-          println("threatshield-upload-key.jks is missing. Automatically generating release keystore...")
-          val process = ProcessBuilder(
-            "keytool", "-genkey", "-v",
-            "-keystore", kFile.absolutePath,
-            "-alias", "threatshield-upload",
-            "-keyalg", "RSA",
-            "-keysize", "2048",
-            "-validity", "10000",
-            "-storepass", "threatshield123",
-            "-keypass", "threatshield123",
-            "-dname", "CN=ThreatShield, OU=AI, O=SkyOrigin, L=Delhi, S=Delhi, C=IN"
-          ).inheritIO().start()
-          process.waitFor()
-          println("Successfully generated release keystore at: ${kFile.absolutePath}")
-        } catch (e: Exception) {
-          println("Failed to auto-generate release keystore: ${e.message}")
-        }
+      if (System.getenv("CI") == "true") {
+        storeFile = file(System.getenv("CM_KEYSTORE_PATH"))
+        storePassword = System.getenv("CM_KEYSTORE_PASSWORD")
+        keyAlias = System.getenv("CM_KEY_ALIAS")
+        keyPassword = System.getenv("CM_KEY_PASSWORD")
       }
-      storeFile = kFile
-      storeType = "JKS"
-      storePassword = System.getenv("STORE_PASSWORD") ?: "threatshield123"
-      keyAlias = System.getenv("KEY_ALIAS") ?: "threatshield-upload"
-      keyPassword = System.getenv("KEY_PASSWORD") ?: "threatshield123"
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
