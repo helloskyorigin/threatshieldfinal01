@@ -69,19 +69,14 @@ android {
         val cmKeyAlias: String? = System.getenv("CM_KEY_ALIAS") ?: System.getenv("FCI_KEY_ALIAS")
         val cmKeyPassword: String? = System.getenv("CM_KEY_PASSWORD") ?: System.getenv("FCI_KEY_PASSWORD")
 
-        if (cmKeystorePath.isNullOrEmpty() || cmKeystorePassword.isNullOrEmpty() || cmKeyAlias.isNullOrEmpty() || cmKeyPassword.isNullOrEmpty()) {
-          val missingVars = mutableListOf<String>()
-          if (cmKeystorePath.isNullOrEmpty()) missingVars.add("CM_KEYSTORE_PATH/FCI_KEYSTORE_PATH")
-          if (cmKeystorePassword.isNullOrEmpty()) missingVars.add("CM_KEYSTORE_PASSWORD/FCI_KEYSTORE_PASSWORD")
-          if (cmKeyAlias.isNullOrEmpty()) missingVars.add("CM_KEY_ALIAS/FCI_KEY_ALIAS")
-          if (cmKeyPassword.isNullOrEmpty()) missingVars.add("CM_KEY_PASSWORD/FCI_KEY_PASSWORD")
-          throw org.gradle.api.GradleException("Codemagic Android release signing is misconfigured. Missing environment variables: ${missingVars.joinToString(", ")}")
+        if (!cmKeystorePath.isNullOrEmpty() && !cmKeystorePassword.isNullOrEmpty() && !cmKeyAlias.isNullOrEmpty()) {
+          storeFile = file(cmKeystorePath)
+          storePassword = cmKeystorePassword
+          keyAlias = cmKeyAlias
+          keyPassword = cmKeyPassword ?: cmKeystorePassword
+        } else {
+          logger.warn("Codemagic Android release signing variables are partially missing or empty. Skipping release signing configuration.")
         }
-
-        storeFile = file(cmKeystorePath)
-        storePassword = cmKeystorePassword
-        keyAlias = cmKeyAlias
-        keyPassword = cmKeyPassword
       }
     }
     create("debugConfig") {
