@@ -144,7 +144,7 @@ fun AboutScreen(
                         Spacer(modifier = Modifier.height(2.dp))
 
                         Text(
-                            text = "Version 1.0.0 (Build 124)\nDeveloper: Sky Origin\n© 2026 Sky Origin",
+                            text = "v1.0\nDeveloper: Sky Origin\n© 2026 Sky Origin",
                             style = TextStyle(
                                 fontSize = 12.sp,
                                 color = Color(0xFF94A3B8),

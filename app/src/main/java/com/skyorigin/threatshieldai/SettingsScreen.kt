@@ -137,17 +137,8 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(2.dp))
 
-                        val appVersion = remember {
-                            try {
-                                val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-                                packageInfo.versionName ?: "v1.0.0"
-                            } catch (e: Exception) {
-                                "v1.0"
-                            }
-                        }
-
                         Text(
-                            text = if (appVersion.startsWith("v")) "Version $appVersion" else "Version v$appVersion",
+                            text = "v1.0",
                             style = TextStyle(
                                 fontSize = 12.sp,
                                 color = Color(0xFF94A3B8),
