@@ -4,5 +4,6 @@
         android:width="108dp"
         android:height="108dp"
         android:drawable="@drawable/threat"
-        android:gravity="center" />
+        android:gravity="center"
+        android:top="8dp" />
 </layer-list>

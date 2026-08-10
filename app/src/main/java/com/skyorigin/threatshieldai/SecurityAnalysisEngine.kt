@@ -429,9 +429,46 @@ object SecurityAnalysisEngine {
         var apiKey = ""
         try { apiKey = BuildConfig.GROQ_API_KEY } catch (e: Exception) {}
         
-        if (apiKey.isEmpty() || apiKey == "your_api_key_here") {
-            Log.e(TAG, "Groq API key is missing or placeholder!")
-            throw ApiErrorException("API Key is missing")
+        val isGroqActive = apiKey.isNotEmpty() && apiKey != "your_api_key_here"
+        
+        if (!isGroqActive) {
+            var geminiKey = ""
+            try { geminiKey = BuildConfig.GEMINI_API_KEY } catch (e: Exception) {}
+            if (geminiKey.isEmpty() || geminiKey == "MY_GEMINI_API_KEY" || geminiKey == "your_api_key_here") {
+                Log.e(TAG, "Both Groq and Gemini API keys are missing or placeholder!")
+                throw ApiErrorException("API Key is missing")
+            }
+            
+            try {
+                val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$geminiKey"
+                val requestBodyJson = JSONObject().apply {
+                    put("contents", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("parts", JSONArray().apply {
+                                put(JSONObject().apply {
+                                    put("text", "ping")
+                                })
+                            })
+                        })
+                    })
+                }
+                val request = Request.Builder()
+                    .url(url)
+                    .post(requestBodyJson.toString().toRequestBody("application/json".toMediaType()))
+                    .build()
+                client.newCall(request).execute().use { response ->
+                    if (response.code in 500..599) {
+                        throw ServiceUnavailableException("Gemini returned 5xx error (${response.code})")
+                    }
+                    if (response.code == 401 || response.code == 403) {
+                        throw ApiErrorException("Gemini authentication failed (${response.code})")
+                    }
+                    return@withContext true
+                }
+            } catch (e: Exception) {
+                if (e is ApiErrorException || e is ServiceUnavailableException) throw e
+                throw ServiceUnavailableException("Cannot reach Gemini API: ${e.message}")
+            }
         }
         
         try {
@@ -470,6 +507,7 @@ object SecurityAnalysisEngine {
         var groqKey = testGroqKey ?: ""
         var webRiskKey = testWebRiskKey ?: ""
         var urlscanKey = ""
+        var geminiKey = ""
         if (groqKey.isEmpty()) {
             try {
                 groqKey = BuildConfig.GROQ_API_KEY
@@ -479,10 +517,16 @@ object SecurityAnalysisEngine {
         try {
             urlscanKey = BuildConfig.URLSCAN_API_KEY
         } catch (e: Exception) {}
+        try {
+            geminiKey = BuildConfig.GEMINI_API_KEY
+        } catch (e: Exception) {}
 
-        if (groqKey.isEmpty() || groqKey == "your_api_key_here") {
-            Log.e(TAG, "Groq API key is missing!")
-            throw ApiErrorException("Groq API Key is missing")
+        val isGroqActive = groqKey.isNotEmpty() && groqKey != "your_api_key_here"
+        val isGeminiActive = geminiKey.isNotEmpty() && geminiKey != "MY_GEMINI_API_KEY" && geminiKey != "your_api_key_here"
+
+        if (!isGroqActive && !isGeminiActive) {
+            Log.e(TAG, "Neither Groq nor Gemini API key is configured!")
+            throw ApiErrorException("API Key is missing")
         }
 
         val originalMessage = text
@@ -519,132 +563,138 @@ object SecurityAnalysisEngine {
         }
 
         kotlinx.coroutines.coroutineScope {
-            // A. Start GPT-OSS 20B Text Analysis layer in parallel
+            // A. Start Text Analysis layer in parallel (Groq primarily, or Gemini)
             val aiDeferred = async {
-                if (groqKey.isEmpty() || groqKey == "your_api_key_here") {
-                    aiStatus = "missing_key"
-                    return@async null
-                }
-val models = listOf("openai/gpt-oss-20b", "qwen/qwen3.6-27b")
-                var lastException: Exception? = null
+                val systemInstruction = """
+                    You are ThreatShield AI's security analyst. Analyze the user message to identify scams/phishing and return a structured JSON response.
+
+                    CLASSIFICATION RULES:
+                    1. SAFE: For legitimate, normal, transactional, marketing, or promotional messages (including genuine bank updates, OTPs, telecom recharges, shipping alerts, free promotional offers, movie/OTT subscriptions, app download recommendations, loyalty rewards). Keywords like bank, kyc, recharge, pay, link, verify, otp, free, offer, congratulations, badhai, download, reward do NOT make a message dangerous or suspicious unless explicit fraud or scam intent is clear.
+                    2. SUSPICIOUS: For messages with possible warnings but lacking definitive proof of malice.
+                    3. DANGEROUS: For clear fraud (impersonation + threat/trap, credential theft, fake refund/kyc/lottery, OTP traps, payment manipulation).
+                    4. UNABLE_TO_DETERMINE: For extremely short, vague, or context-less messages (e.g., "Hello", "Call me").
+
+                    PROMOTIONAL VS SCAM RULES:
+                    - Normal promotional messages from telecom providers, brands, or services offering free access, recharges, discounts, or app downloads without asking for sensitive credentials (passwords, OTPs, PINs, bank details) or making threats are SAFE.
+                    - Do NOT classify promotional offers or marketing language as DANGEROUS or SUSPICIOUS.
+                    - Do NOT report "Credential Harvesting" unless the message or link explicitly requests credentials/passwords/OTPs/PINs or is a verified phishing destination.
+                    - Do NOT report "Urgency Tactic" unless there is actual threat/pressure language (e.g. "account blocked in 1 hour", "police warrant"). Standard promotional language or "watch now" is NOT urgency.
+                    - Do NOT report "Fake Support" or "Unverified Domain" unless there is explicit fake support impersonation or verified malicious domain evidence.
+
+                    JSON OUTPUT SCHEMA:
+                    {
+                      "classification": "SAFE" | "SUSPICIOUS" | "DANGEROUS" | "UNABLE_TO_DETERMINE",
+                      "evidence_sufficiency": "SUFFICIENT" | "INSUFFICIENT",
+                      "scam_probability": 0-100,
+                      "confidence": 50-99,
+                      "confidence_reason": "One short sentence explaining why.",
+                      "scam_category": "OTP Scam" | "Bank Impersonation" | "Fake KYC" | "Parcel Scam" | "Lottery Scam" | "Investment Scam" | "Credential Harvesting" | "Fake Support" | "UPI Fraud" | "Refund Scam" | "Government Impersonation" | "Telecom Impersonation" | "Brand Impersonation" | "Social Engineering" | "None",
+                      "short_reason": "One concise sentence summarizing the main security/scam aspect.",
+                      "extracted_signals": ["Concise signal 1", "Concise signal 2"],
+                      "advice": ["Concise next step 1", "Concise next step 2"]
+                    }
+
+                    CONFIDENCE RULES (MUST BE 50 TO 99):
+                    - 95-99: Very strong evidence (multiple scam indicators agree, brand impersonation, credential theft attempt, OTP/Password request, urgency tactics, fake domain).
+                    - 90-94: Strong evidence.
+                    - 80-89: Likely correct.
+                    - 70-79: Moderate confidence.
+                    - 60-69: Low confidence.
+                    - 50-59: Very uncertain (ambiguous message, few indicators, mixed signals).
+
+                    OUTPUT RULES:
+                    - Output ONLY valid JSON. No markdown, no explanations outside JSON, no chain-of-thought, no prefix/suffix.
+                    - Keep "short_reason", "extracted_signals", and "advice" extremely concise to minimize token usage.
+                """.trimIndent()
+
+                val userPrompt = "Message to analyze: \"$normalizedMessage\"" + (if (uniqueUrls.isNotEmpty()) "\nNote: The URL(s) in this message are successfully being checked by Google Web Risk. Analyze the context of the message itself to decide if it is SAFE, SUSPICIOUS, or DANGEROUS, or UNABLE_TO_DETERMINE." else "") + (if (isHindi) " (Provide analysis in Hindi/Hinglish)" else " (Provide analysis in English)")
+
                 var successfulModelResult: JSONObject? = null
 
-                for (model in models) {
-                    try {
-                        val systemInstruction = """
-                            You are ThreatShield AI's security analyst. Analyze the user message to identify scams/phishing and return a structured JSON response.
+                if (isGroqActive) {
+                    val models = listOf("llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768")
+                    var lastException: Exception? = null
 
-                            CLASSIFICATION RULES:
-                            1. SAFE: For legitimate, normal, transactional, marketing, or promotional messages (including genuine bank updates, OTPs, telecom recharges, shipping alerts, free promotional offers, movie/OTT subscriptions, app download recommendations, loyalty rewards). Keywords like bank, kyc, recharge, pay, link, verify, otp, free, offer, congratulations, badhai, download, reward do NOT make a message dangerous or suspicious unless explicit fraud or scam intent is clear.
-                            2. SUSPICIOUS: For messages with possible warnings but lacking definitive proof of malice.
-                            3. DANGEROUS: For clear fraud (impersonation + threat/trap, credential theft, fake refund/kyc/lottery, OTP traps, payment manipulation).
-                            4. UNABLE_TO_DETERMINE: For extremely short, vague, or context-less messages (e.g., "Hello", "Call me").
-
-                            PROMOTIONAL VS SCAM RULES:
-                            - Normal promotional messages from telecom providers, brands, or services offering free access, recharges, discounts, or app downloads without asking for sensitive credentials (passwords, OTPs, PINs, bank details) or making threats are SAFE.
-                            - Do NOT classify promotional offers or marketing language as DANGEROUS or SUSPICIOUS.
-                            - Do NOT report "Credential Harvesting" unless the message or link explicitly requests credentials/passwords/OTPs/PINs or is a verified phishing destination.
-                            - Do NOT report "Urgency Tactic" unless there is actual threat/pressure language (e.g. "account blocked in 1 hour", "police warrant"). Standard promotional language or "watch now" is NOT urgency.
-                            - Do NOT report "Fake Support" or "Unverified Domain" unless there is explicit fake support impersonation or verified malicious domain evidence.
-
-                            JSON OUTPUT SCHEMA:
-                            {
-                              "classification": "SAFE" | "SUSPICIOUS" | "DANGEROUS" | "UNABLE_TO_DETERMINE",
-                              "evidence_sufficiency": "SUFFICIENT" | "INSUFFICIENT",
-                              "scam_probability": 0-100,
-                              "confidence": 50-99,
-                              "confidence_reason": "One short sentence explaining why.",
-                              "scam_category": "OTP Scam" | "Bank Impersonation" | "Fake KYC" | "Parcel Scam" | "Lottery Scam" | "Investment Scam" | "Credential Harvesting" | "Fake Support" | "UPI Fraud" | "Refund Scam" | "Government Impersonation" | "Telecom Impersonation" | "Brand Impersonation" | "Social Engineering" | "None",
-                              "short_reason": "One concise sentence summarizing the main security/scam aspect.",
-                              "extracted_signals": ["Concise signal 1", "Concise signal 2"],
-                              "advice": ["Concise next step 1", "Concise next step 2"]
+                    for (model in models) {
+                        try {
+                            val requestBodyJson = JSONObject().apply {
+                                put("model", model)
+                                put("messages", JSONArray().apply {
+                                    put(JSONObject().apply {
+                                        put("role", "system")
+                                        put("content", systemInstruction)
+                                    })
+                                    put(JSONObject().apply {
+                                        put("role", "user")
+                                        put("content", userPrompt)
+                                    })
+                                })
+                                put("response_format", JSONObject().apply {
+                                    put("type", "json_object")
+                                })
+                                put("temperature", 0.1)
+                                put("max_tokens", 350)
+                                if (model.contains("gpt-oss")) {
+                                    put("reasoning_effort", "low")
+                                }
                             }
 
-                            CONFIDENCE RULES (MUST BE 50 TO 99):
-                            - 95-99: Very strong evidence (multiple scam indicators agree, brand impersonation, credential theft attempt, OTP/Password request, urgency tactics, fake domain).
-                            - 90-94: Strong evidence.
-                            - 80-89: Likely correct.
-                            - 70-79: Moderate confidence.
-                            - 60-69: Low confidence.
-                            - 50-59: Very uncertain (ambiguous message, few indicators, mixed signals).
+                            successfulModelResult = executeWithRetry("AI-$model", block = {
+                                kotlinx.coroutines.withTimeout(12000L) {
+                                    val request = Request.Builder()
+                                        .url(GROQ_API_URL)
+                                        .addHeader("Authorization", "Bearer $groqKey")
+                                        .post(requestBodyJson.toString().toRequestBody("application/json".toMediaType()))
+                                        .build()
 
-                            OUTPUT RULES:
-                            - Output ONLY valid JSON. No markdown, no explanations outside JSON, no chain-of-thought, no prefix/suffix.
-                            - Keep "short_reason", "extracted_signals", and "advice" extremely concise to minimize token usage.
-                        """.trimIndent()
-
-                        val requestBodyJson = JSONObject().apply {
-                            put("model", model)
-                            put("messages", JSONArray().apply {
-                                put(JSONObject().apply {
-                                    put("role", "system")
-                                    put("content", systemInstruction)
-                                })
-                                put(JSONObject().apply {
-                                    put("role", "user")
-                                    val langNote = if (isHindi) " (Provide analysis in Hindi/Hinglish)" else " (Provide analysis in English)"
-                                    val urlInfo = if (uniqueUrls.isNotEmpty()) {
-                                        "\nNote: The URL(s) in this message are successfully being checked by Google Web Risk. Analyze the context of the message itself to decide if it is SAFE, SUSPICIOUS, or DANGEROUS, or UNABLE_TO_DETERMINE."
-                                    } else ""
-                                    put("content", "Message to analyze: \"$normalizedMessage\"$urlInfo$langNote")
-                                })
-                            })
-                            put("response_format", JSONObject().apply {
-                                put("type", "json_object")
-                            })
-                            put("temperature", 0.1)
-                            put("max_tokens", 350)
-                            if (model.contains("gpt-oss")) {
-                                put("reasoning_effort", "low")
-                            }
-                        }
-
-                        successfulModelResult = executeWithRetry("AI-$model", block = {
-                            kotlinx.coroutines.withTimeout(12000L) {
-                                val request = Request.Builder()
-                                    .url(GROQ_API_URL)
-                                    .addHeader("Authorization", "Bearer $groqKey")
-                                    .post(requestBodyJson.toString().toRequestBody("application/json".toMediaType()))
-                                    .build()
-
-                                client.newCall(request).execute().use { response ->
-                                    if (response.isSuccessful) {
-                                        val body = response.body?.string() ?: "{}"
-                                        val jsonResponse = JSONObject(body)
-                                        val choices = jsonResponse.optJSONArray("choices")
-                                        val content = choices?.optJSONObject(0)?.optJSONObject("message")?.optString("content")
-                                        if (content != null) {
-                                            JSONObject(content)
+                                    client.newCall(request).execute().use { response ->
+                                        if (response.isSuccessful) {
+                                            val body = response.body?.string() ?: "{}"
+                                            val jsonResponse = JSONObject(body)
+                                            val choices = jsonResponse.optJSONArray("choices")
+                                            val content = choices?.optJSONObject(0)?.optJSONObject("message")?.optString("content")
+                                            if (content != null) {
+                                                JSONObject(content)
+                                            } else {
+                                                throw PermanentApiException("Invalid response format from Groq")
+                                            }
                                         } else {
-                                            throw PermanentApiException("Invalid response format from Groq")
-                                        }
-                                    } else {
-                                        val code = response.code
-                                        if (code == 401 || code == 403) {
-                                            throw PermanentApiException("Authentication failed: $code")
-                                        } else if (code == 400) {
-                                            throw PermanentApiException("Bad request: $code")
-                                        } else if (code == 404 || code == 422) {
-                                            throw IOException("Model unavailable: $code")
-                                        } else if (code == 429) {
-                                            throw IOException("Rate limit / Quota limit: $code")
-                                        } else {
-                                            throw IOException("Server error: $code")
+                                            val code = response.code
+                                            if (code == 401 || code == 403) {
+                                                throw PermanentApiException("Authentication failed: $code")
+                                            } else if (code == 400) {
+                                                throw PermanentApiException("Bad request: $code")
+                                            } else if (code == 404 || code == 422) {
+                                                throw IOException("Model unavailable: $code")
+                                            } else if (code == 429) {
+                                                throw IOException("Rate limit / Quota limit: $code")
+                                            } else {
+                                                throw IOException("Server error: $code")
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        }, isPermanentError = { it is PermanentApiException })
+                            }, isPermanentError = { it is PermanentApiException })
 
-                        aiStatus = "ok"
-                        break
-
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Model $model execution failed", e)
-                        lastException = e
-                        if (e is PermanentApiException) {
+                            aiStatus = "ok"
                             break
+
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Model $model execution failed", e)
+                            lastException = e
+                            if (e is PermanentApiException) {
+                                break
+                            }
                         }
+                    }
+                }
+
+                if (successfulModelResult == null && isGeminiActive) {
+                    try {
+                        successfulModelResult = executeGeminiScan(systemInstruction, userPrompt)
+                        aiStatus = "ok"
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Gemini fallback scan failed", e)
                     }
                 }
 
@@ -2021,6 +2071,57 @@ val models = listOf("openai/gpt-oss-20b", "qwen/qwen3.6-27b")
                 )
             }
             else -> null
+        }
+    }
+
+    private suspend fun executeGeminiScan(systemInstruction: String, userPrompt: String): JSONObject {
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$apiKey"
+        
+        val requestBodyJson = JSONObject().apply {
+            put("contents", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("text", userPrompt)
+                        })
+                    })
+                })
+            })
+            put("systemInstruction", JSONObject().apply {
+                put("parts", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("text", systemInstruction)
+                    })
+                })
+            })
+            put("generationConfig", JSONObject().apply {
+                put("responseMimeType", "application/json")
+                put("temperature", 0.1)
+            })
+        }
+
+        val request = Request.Builder()
+            .url(url)
+            .post(requestBodyJson.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (response.isSuccessful) {
+                val body = response.body?.string() ?: "{}"
+                val jsonResponse = JSONObject(body)
+                val candidates = jsonResponse.optJSONArray("candidates")
+                val content = candidates?.optJSONObject(0)?.optJSONObject("content")
+                val parts = content?.optJSONArray("parts")
+                val text = parts?.optJSONObject(0)?.optString("text")
+                if (text != null) {
+                    return JSONObject(text)
+                } else {
+                    throw Exception("Invalid response format from Gemini")
+                }
+            } else {
+                throw Exception("Gemini API call failed with code: ${response.code}")
+            }
         }
     }
 

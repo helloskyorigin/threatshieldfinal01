@@ -64,10 +64,24 @@ android {
   signingConfigs {
     create("release") {
       if (System.getenv("CI") == "true") {
-        storeFile = file(System.getenv("CM_KEYSTORE_PATH"))
-        storePassword = System.getenv("CM_KEYSTORE_PASSWORD")
-        keyAlias = System.getenv("CM_KEY_ALIAS")
-        keyPassword = System.getenv("CM_KEY_PASSWORD")
+        val cmKeystorePath: String? = System.getenv("CM_KEYSTORE_PATH") ?: System.getenv("FCI_KEYSTORE_PATH")
+        val cmKeystorePassword: String? = System.getenv("CM_KEYSTORE_PASSWORD") ?: System.getenv("FCI_KEYSTORE_PASSWORD")
+        val cmKeyAlias: String? = System.getenv("CM_KEY_ALIAS") ?: System.getenv("FCI_KEY_ALIAS")
+        val cmKeyPassword: String? = System.getenv("CM_KEY_PASSWORD") ?: System.getenv("FCI_KEY_PASSWORD")
+
+        if (cmKeystorePath.isNullOrEmpty() || cmKeystorePassword.isNullOrEmpty() || cmKeyAlias.isNullOrEmpty() || cmKeyPassword.isNullOrEmpty()) {
+          val missingVars = mutableListOf<String>()
+          if (cmKeystorePath.isNullOrEmpty()) missingVars.add("CM_KEYSTORE_PATH/FCI_KEYSTORE_PATH")
+          if (cmKeystorePassword.isNullOrEmpty()) missingVars.add("CM_KEYSTORE_PASSWORD/FCI_KEYSTORE_PASSWORD")
+          if (cmKeyAlias.isNullOrEmpty()) missingVars.add("CM_KEY_ALIAS/FCI_KEY_ALIAS")
+          if (cmKeyPassword.isNullOrEmpty()) missingVars.add("CM_KEY_PASSWORD/FCI_KEY_PASSWORD")
+          throw org.gradle.api.GradleException("Codemagic Android release signing is misconfigured. Missing environment variables: ${missingVars.joinToString(", ")}")
+        }
+
+        storeFile = file(cmKeystorePath)
+        storePassword = cmKeystorePassword
+        keyAlias = cmKeyAlias
+        keyPassword = cmKeyPassword
       }
     }
     create("debugConfig") {
