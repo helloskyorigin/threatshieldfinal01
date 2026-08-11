@@ -43,7 +43,7 @@ fun DailySafetyTipScreen(
     modifier: Modifier = Modifier
 ) {
     val isDark = LocalIsDark.current
-    val isHindi = viewModel.currentLanguage == "hi"
+    val isHindi = false
     val context = LocalContext.current
 
     val textPrimary = MaterialTheme.colorScheme.onBackground

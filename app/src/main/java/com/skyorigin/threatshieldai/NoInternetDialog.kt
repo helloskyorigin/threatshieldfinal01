@@ -55,7 +55,7 @@ fun NoInternetDialog(
         },
         title = {
             Text(
-                text = if (isHindi) "कोई इंटरनेट कनेक्शन नहीं" else "No Internet Connection",
+                text = "No Internet Connection",
                 style = TextStyle(
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
@@ -66,10 +66,7 @@ fun NoInternetDialog(
         },
         text = {
             Text(
-                text = if (isHindi) 
-                    "ThreatShield AI को इंटरनेट कनेक्शन की आवश्यकता है। अपना कनेक्शन जांचें और पुनः प्रयास करें।" 
-                else 
-                    "ThreatShield AI requires an internet connection. Check your connection and try again.",
+                text = "ThreatShield AI requires an internet connection. Check your connection and try again.",
                 style = TextStyle(
                     fontSize = 14.sp,
                     color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
@@ -89,7 +86,7 @@ fun NoInternetDialog(
                         if (!isConnected) {
                             android.widget.Toast.makeText(
                                 context,
-                                if (isHindi) "अभी भी ऑफलाइन हैं। कृपया इंटरनेट जांचें।" else "Still offline. Please check your internet connection.",
+                                "Still offline. Please check your internet connection.",
                                 android.widget.Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -113,7 +110,7 @@ fun NoInternetDialog(
                     )
                 } else {
                     Text(
-                        text = if (isHindi) "पुनः प्रयास करें" else "Retry",
+                        text = "Retry",
                         style = TextStyle(
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold

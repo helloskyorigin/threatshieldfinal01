@@ -64,27 +64,19 @@ fun MessageAnalysis.getUrlVerdict(): String {
 }
 
 fun MessageAnalysis.getLocalizedStatus(isHindi: Boolean): String {
-    return VerdictMapper.getVerdictForScore(score).getTitle(isHindi)
+    return VerdictMapper.getVerdictForScore(score).titleEn
 }
 
 fun MessageAnalysis.getRiskLevelLabel(isHindi: Boolean): String {
-    return VerdictMapper.getVerdictForScore(score).getTitle(isHindi)
+    return VerdictMapper.getVerdictForScore(score).titleEn
 }
 
 fun MessageAnalysis.getConfidenceLabel(isHindi: Boolean): String {
     val conf = if (confidence > 0) confidence else 50
-    return if (isHindi) {
-        when {
-            conf >= 80 -> "High (${conf}%)"
-            conf >= 50 -> "Medium (${conf}%)"
-            else -> "Low (${conf}%)"
-        }
-    } else {
-        when {
-            conf >= 80 -> "High (${conf}%)"
-            conf >= 50 -> "Medium (${conf}%)"
-            else -> "Low (${conf}%)"
-        }
+    return when {
+        conf >= 80 -> "High (${conf}%)"
+        conf >= 50 -> "Medium (${conf}%)"
+        else -> "Low (${conf}%)"
     }
 }
 
@@ -95,19 +87,6 @@ fun MessageAnalysis.getLocalizedSummary(isHindi: Boolean): String {
         return summary
     }
     val st = status.lowercase()
-    if (isHindi) {
-        return when {
-            st.contains("danger") || st.contains("unsafe") || score >= 70 -> {
-                "यह संदेश एक खतरनाक घोटाला हो सकता है। इसमें संदिग्ध लिंक और धोखाधड़ी के संकेत मिले हैं।"
-            }
-            st.contains("suspicious") || score >= 40 -> {
-                "यह संदेश पूरी तरह भरोसेमंद नहीं लग रहा है। इसमें सावधानी रखना आवश्यक है।"
-            }
-            else -> {
-                "इस संदेश में कोई घोटाला पैटर्न नहीं मिला है। संदेश सुरक्षित प्रतीत होता है।"
-            }
-        }
-    }
     return when {
         st.contains("danger") || st.contains("unsafe") || score >= 70 -> {
             "This message shows clear signs of a security threat or scam."
@@ -128,19 +107,6 @@ fun MessageAnalysis.getLocalizedExplain15(isHindi: Boolean): String {
         return explain15
     }
     val st = status.lowercase()
-    if (isHindi) {
-        return when {
-            st.contains("danger") || st.contains("unsafe") || score >= 70 -> {
-                "संदेश में गंभीर सुरक्षा जोखिम, फर्जी पहचान या डेटा चोरी के संकेत मिले हैं। किसी भी लिंक को न खोलें और निजी जानकारी साझा न करें।"
-            }
-            st.contains("suspicious") || score >= 40 -> {
-                "यह संदेश पूरी तरह सुरक्षित नहीं लग रहा है। इसमें असामान्य दबाव या असत्यापित अनुरोध पाए गए हैं। सावधानी बरतें।"
-            }
-            else -> {
-                "संदेश का सुरक्षा विश्लेषण पूर्ण हुआ। कोई फ़िशिंग लिंक या संदिग्ध पैटर्न नहीं पाया गया, संदेश सुरक्षित प्रतीत होता है।"
-            }
-        }
-    }
     return when {
         st.contains("danger") || st.contains("unsafe") || score >= 70 -> {
             "High-risk threat detected: message exhibits severe deceptive impersonation, credential harvesting, or payment trap indicators."
@@ -190,35 +156,35 @@ fun MessageAnalysis.getLocalAdvice(isHindi: Boolean): List<String> {
 
     if (isDanger) {
         if (isKnownThreatUrl) {
-            actions.add(if (isHindi) "दिए गए Link को बिल्कुल न खोलें, यह एक पुख्ता खतरा है।" else "Do not open the detected Link; it is a confirmed threat.")
-            actions.add(if (isHindi) "personal, financial, login, OTP या sensitive information enter न करें।" else "Do not enter personal, financial, login, OTP, or other sensitive information.")
-            actions.add(if (isHindi) "आवश्यकता होने पर official channel के माध्यम से sender को verify करें।" else "Verify the sender through an official channel if necessary.")
-            actions.add(if (isHindi) "उचित होने पर sender को block और report करें।" else "Block/report the sender when appropriate.")
+            actions.add("Do not open the detected Link; it is a confirmed threat.")
+            actions.add("Do not enter personal, financial, login, OTP, or other sensitive information.")
+            actions.add("Verify the sender through an official channel if necessary.")
+            actions.add("Block/report the sender when appropriate.")
         } else {
             if (hasLink) {
-                actions.add(if (isHindi) "इस message में दिए गए suspicious Link पर click न करें।" else "Do not tap on the suspicious Link in this message.")
+                actions.add("Do not tap on the suspicious Link in this message.")
             }
             
             if (asksForOtp) {
-                actions.add(if (isHindi) "OTP, PIN या Password किसी के साथ share न करें।" else "Never share OTP, PIN, or passwords with anyone.")
+                actions.add("Never share OTP, PIN, or passwords with anyone.")
             }
             
             if (isBankOrUpi || isRefundScam || isBankScam) {
-                actions.add(if (isHindi) "अपनी banking details सुरक्षित रखें और अज्ञात खातों में पैसे transfer न करें।" else "Keep your banking details secure and do not transfer money to unknown accounts.")
+                actions.add("Keep your banking details secure and do not transfer money to unknown accounts.")
             } else if (isPrizeScam || isPrizeOrRefund) {
-                actions.add(if (isHindi) "अचानक मिले lottery, cashback या reward के दावों को ignore करें।" else "Ignore claims of unexpected lottery, cashback, or rewards.")
+                actions.add("Ignore claims of unexpected lottery, cashback, or rewards.")
             }
             
             if (asksForVerification || isUrgent) {
-                actions.add(if (isHindi) "दबाव या urgency के प्रभाव में आकर credentials update न करें।" else "Do not perform verification or account updates under urgency pressure.")
+                actions.add("Do not perform verification or account updates under urgency pressure.")
             }
             
             // Fallbacks to reach at least 2 actions
             if (actions.size < 2) {
-                actions.add(if (isHindi) "इस sender को तुरंत block और report करें।" else "Block and report this sender immediately.")
+                actions.add("Block and report this sender immediately.")
             }
             if (actions.size < 2) {
-                actions.add(if (isHindi) "भविष्य में सुरक्षा के लिए इस तरह के संदेशों से दूर रहें।" else "Avoid interacting with similar messages for future safety.")
+                actions.add("Avoid interacting with similar messages for future safety.")
             }
         }
         
@@ -226,43 +192,43 @@ fun MessageAnalysis.getLocalAdvice(isHindi: Boolean): List<String> {
     } else if (isWarning || isSuspicious) {
         if (hasLink) {
             if (isUnverifiedUrl) {
-                actions.add(if (isHindi) "Unverified Link पर click करने के बजाय official app या website का उपयोग करें।" else "Open the official app or website directly instead of tapping the unverified Link.")
+                actions.add("Open the official app or website directly instead of tapping the unverified Link.")
             } else {
-                actions.add(if (isHindi) "इस message में मौजूद Link को open करने से पहले सावधानी बरतें।" else "Exercise extreme caution before opening any link in this message.")
+                actions.add("Exercise extreme caution before opening any link in this message.")
             }
         }
         
         if (asksForOtp) {
-            actions.add(if (isHindi) "अज्ञात अनुरोधों के जवाब में OTP, PIN या Password share न करें।" else "Do not share OTP, PIN, or passwords in response to unsolicited requests.")
+            actions.add("Do not share OTP, PIN, or passwords in response to unsolicited requests.")
         }
         
         // Sender verification is highly recommended for suspicious
-        actions.add(if (isHindi) "कोई भी action लेने से पहले sender की identity को official source से verify करें।" else "Verify the sender's identity through official sources before taking any action.")
+        actions.add("Verify the sender's identity through official sources before taking any action.")
         
         if (isBankOrUpi || isRefundScam || isBankScam) {
-            actions.add(if (isHindi) "अपने bank या UPI app से transaction status खुद check करें।" else "Double-check transaction status directly in your official bank or UPI app.")
+            actions.add("Double-check transaction status directly in your official bank or UPI app.")
         } else if (isPrizeScam || isPrizeOrRefund) {
-            actions.add(if (isHindi) "बिना किसी प्रतियोगिता में भाग लिए मिले इनामों पर विश्वास न करें।" else "Do not trust prize claims if you haven't participated in any contest.")
+            actions.add("Do not trust prize claims if you haven't participated in any contest.")
         }
         
         if (isUrgent) {
-            actions.add(if (isHindi) "उतावली करने से बचें, ऐसी urgency messages अक्सर scam हो सकती हैं।" else "Avoid rushing; message-created urgency is a common tactic of scammers.")
+            actions.add("Avoid rushing; message-created urgency is a common tactic of scammers.")
         }
         
         if (actions.size < 2) {
-            actions.add(if (isHindi) "इस message के sender को block करने पर विचार करें।" else "Consider blocking the sender if you don't recognize them.")
+            actions.add("Consider blocking the sender if you don't recognize them.")
         }
         
         return actions.distinct().take(3)
     } else { // Safe
         if (hasLink) {
-            actions.add(if (isHindi) "यह Link सुरक्षित लग रहा है, फिर भी अनजान स्रोतों पर सतर्क रहें।" else "The Link appears safe, but remain vigilant on unfamiliar websites.")
+            actions.add("The Link appears safe, but remain vigilant on unfamiliar websites.")
         } else {
-            actions.add(if (isHindi) "यह संदेश सुरक्षित लग रहा है, पर unexpected अनुरोधों से हमेशा सावधान रहें।" else "This message looks safe, but stay cautious with unexpected requests.")
+            actions.add("This message looks safe, but stay cautious with unexpected requests.")
         }
         
         if (actions.size < 2) {
-            actions.add(if (isHindi) "सुरक्षित संदेश प्रथाओं (Safe sharing practices) का पालन करते रहें।" else "Continue practicing safe sharing and messaging habits.")
+            actions.add("Continue practicing safe sharing and messaging habits.")
         }
         
         return actions.distinct().take(2)

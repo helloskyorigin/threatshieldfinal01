@@ -8,24 +8,15 @@ import java.util.Locale
 
 object DateTimeUtils {
 
-    fun getGreeting(isHindi: Boolean): String {
+    fun getGreeting(isHindi: Boolean = false): String {
         val calendar = Calendar.getInstance()
         val hour = calendar.get(Calendar.HOUR_OF_DAY)
 
-        return if (isHindi) {
-            when (hour) {
-                in 5..11 -> "सुप्रभात 👋"
-                in 12..16 -> "नमस्कार ☀️"
-                in 17..20 -> "शुभ संध्या 🌇"
-                else -> "शुभ रात्रि 🌙"
-            }
-        } else {
-            when (hour) {
-                in 5..11 -> "Good Morning 👋"
-                in 12..16 -> "Good Afternoon ☀️"
-                in 17..20 -> "Good Evening 🌇"
-                else -> "Good Night 🌙"
-            }
+        return when (hour) {
+            in 5..11 -> "Good Morning 👋"
+            in 12..16 -> "Good Afternoon ☀️"
+            in 17..20 -> "Good Evening 🌇"
+            else -> "Good Night 🌙"
         }
     }
 
@@ -71,27 +62,14 @@ object DateTimeUtils {
         val timeFormat = android.text.format.DateFormat.getTimeFormat(context)
         val formattedTime = timeFormat.format(Date(timestamp))
 
-        return if (isHindi) {
-            when {
-                seconds < 60 -> "अभी-अभी"
-                minutes < 60 -> "$minutes मिनट पहले"
-                isSameDay -> "आज, $formattedTime"
-                isYesterday || isYesterdayCrossYear -> "कल, $formattedTime"
-                else -> {
-                    val dateFormat = android.text.format.DateFormat.getMediumDateFormat(context)
-                    "${dateFormat.format(Date(timestamp))} • $formattedTime"
-                }
-            }
-        } else {
-            when {
-                seconds < 60 -> "Just now"
-                minutes < 60 -> "$minutes minutes ago"
-                isSameDay -> "Today, $formattedTime"
-                isYesterday || isYesterdayCrossYear -> "Yesterday, $formattedTime"
-                else -> {
-                    val dateFormat = android.text.format.DateFormat.getMediumDateFormat(context)
-                    "${dateFormat.format(Date(timestamp))} • $formattedTime"
-                }
+        return when {
+            seconds < 60 -> "Just now"
+            minutes < 60 -> "$minutes minutes ago"
+            isSameDay -> "Today, $formattedTime"
+            isYesterday || isYesterdayCrossYear -> "Yesterday, $formattedTime"
+            else -> {
+                val dateFormat = android.text.format.DateFormat.getMediumDateFormat(context)
+                "${dateFormat.format(Date(timestamp))} • $formattedTime"
             }
         }
     }

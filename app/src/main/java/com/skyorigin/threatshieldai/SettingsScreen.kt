@@ -162,27 +162,6 @@ fun SettingsScreen(
             )
 
             com.skyorigin.threatshieldai.ui.theme.PremiumCard {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    SettingsRow(
-                        icon = Icons.Rounded.Language,
-                        title = "Result Language",
-                        subtitle = when (viewModel.currentLanguage) {
-                            "hi" -> "हिन्दी (Hindi)"
-                            else -> "English"
-                        },
-                        onClick = { showLanguageDialog = true },
-                        textColor = textPrimary,
-                        subColor = textSecondary,
-                        iconColor = Color(0xFF06B6D4)
-                    )
-                    Text(
-                        text = "Language selection applies only to scan results. The rest of the app remains in English.",
-                        fontSize = 12.sp,
-                        color = textSecondary,
-                        modifier = Modifier.padding(start = 40.dp, end = 12.dp, bottom = 12.dp)
-                    )
-                }
-                HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
                     icon = Icons.Rounded.Palette,
                     title = "Theme",
@@ -212,7 +191,7 @@ fun SettingsScreen(
                 SettingsRow(
                     icon = Icons.Rounded.History,
                     title = "Analysis History",
-                    subtitle = if (isHindi) "अपना पिछला एनालिसिस इतिहास देखें" else "View your past analysis history",
+                    subtitle = "View your past analysis history",
                     onClick = onNavigateToHistory,
                     textColor = textPrimary,
                     subColor = textSecondary,
@@ -222,7 +201,7 @@ fun SettingsScreen(
                 SettingsRow(
                     icon = Icons.Rounded.DeleteForever,
                     title = "Clear History",
-                    subtitle = if (isHindi) "सभी एनालिसिस रिकॉर्ड मिटाएं" else "Delete all analysis records",
+                    subtitle = "Delete all analysis records",
                     onClick = {
                         if (viewModel.analysesHistory.isEmpty()) {
                             android.widget.Toast.makeText(
@@ -241,8 +220,8 @@ fun SettingsScreen(
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
                     icon = Icons.Rounded.Analytics,
-                    title = if (isHindi) "Statistics" else "Statistics",
-                    subtitle = if (isHindi) "सुरक्षा आँकड़े और मेट्रिक्स देखें" else "View security statistics & metrics",
+                    title = "Statistics",
+                    subtitle = "View security statistics & metrics",
                     onClick = {
                         showStatsDialog = true
                     },
@@ -254,7 +233,7 @@ fun SettingsScreen(
 
             // Section: Feedback & Support
             Text(
-                text = if (isHindi) "प्रतिक्रिया और रेटिंग" else "Feedback & Support",
+                text = "Feedback & Support",
                 style = TextStyle(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
@@ -265,8 +244,8 @@ fun SettingsScreen(
             com.skyorigin.threatshieldai.ui.theme.PremiumCard {
                 SettingsRow(
                     icon = Icons.Rounded.Star,
-                    title = if (isHindi) "ऐप को रेट करें" else "Rate ThreatShield AI",
-                    subtitle = if (isHindi) "हमें रेटिंग और रिव्यू दें" else "Rate and review our app",
+                    title = "Rate ThreatShield AI",
+                    subtitle = "Rate and review our app",
                     onClick = {
                         AnalyticsManager.getInstance(context).logRateAppClicked()
                         feedbackDialogRating = 0
@@ -281,13 +260,13 @@ fun SettingsScreen(
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
                     icon = Icons.Rounded.BugReport,
-                    title = if (isHindi) "बग रिपोर्ट करें" else "Report a Bug",
-                    subtitle = if (isHindi) "कोई समस्या या एरर रिपोर्ट करें" else "Report an issue or error",
+                    title = "Report a Bug",
+                    subtitle = "Report an issue or error",
                     onClick = {
                         AnalyticsManager.getInstance(context).logReportBugClicked()
                         feedbackDialogRating = 3
                         feedbackForceForm = true
-                        feedbackPreSelectedCategory = if (isHindi) "बग रिपोर्ट (Bug Report)" else "Bug Report"
+                        feedbackPreSelectedCategory = "Bug Report"
                         showFeedbackDialogFromSettings = true
                     },
                     textColor = textPrimary,
@@ -297,13 +276,13 @@ fun SettingsScreen(
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
                     icon = Icons.Rounded.Lightbulb,
-                    title = if (isHindi) "फीचर का सुझाव दें" else "Request a Feature",
-                    subtitle = if (isHindi) "नया सुझाव या सुधार बताएं" else "Suggest a new feature or improvement",
+                    title = "Request a Feature",
+                    subtitle = "Suggest a new feature or improvement",
                     onClick = {
                         AnalyticsManager.getInstance(context).logRequestFeatureClicked()
                         feedbackDialogRating = 4
                         feedbackForceForm = true
-                        feedbackPreSelectedCategory = if (isHindi) "सुझाव (Feature Request)" else "Feature Request"
+                        feedbackPreSelectedCategory = "Feature Request"
                         showFeedbackDialogFromSettings = true
                     },
                     textColor = textPrimary,
@@ -313,8 +292,8 @@ fun SettingsScreen(
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
                     icon = Icons.Rounded.Feedback,
-                    title = if (isHindi) "प्रतिक्रिया भेजें" else "Send Feedback",
-                    subtitle = if (isHindi) "अपनी बहुमूल्य प्रतिक्रिया साझा करें" else "Share your valuable feedback",
+                    title = "Send Feedback",
+                    subtitle = "Share your valuable feedback",
                     onClick = {
                         AnalyticsManager.getInstance(context).logSendFeedbackClicked()
                         feedbackDialogRating = 0
@@ -341,8 +320,8 @@ fun SettingsScreen(
             com.skyorigin.threatshieldai.ui.theme.PremiumCard {
                 SettingsRow(
                     icon = Icons.Rounded.Gavel,
-                    title = if (isHindi) "कानूनी और गोपनीयता पोर्टल" else "Legal & Privacy Portal",
-                    subtitle = if (isHindi) "नियम, गोपनीयता और नीतियां" else "Terms, privacy policy, and safety info",
+                    title = "Legal & Privacy Portal",
+                    subtitle = "Terms, privacy policy, and safety info",
                     onClick = { onNavigateToDoc("legal_portal") },
                     textColor = textPrimary,
                     subColor = textSecondary,
@@ -351,8 +330,8 @@ fun SettingsScreen(
                 HorizontalDivider(color = cardBorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                 SettingsRow(
                     icon = Icons.AutoMirrored.Rounded.HelpOutline,
-                    title = if (isHindi) "Frequently Asked Questions (FAQ)" else "Frequently Asked Questions (FAQ)",
-                    subtitle = if (isHindi) "अक्सर पूछे जाने वाले प्रश्न" else "Find answers to common questions",
+                    title = "Frequently Asked Questions (FAQ)",
+                    subtitle = "Find answers to common questions",
                     onClick = onNavigateToFaq,
                     textColor = textPrimary,
                     subColor = textSecondary,
@@ -362,7 +341,7 @@ fun SettingsScreen(
                 SettingsRow(
                     icon = Icons.Rounded.Info,
                     title = "About ThreatShield AI",
-                    subtitle = if (isHindi) "ThreatShield AI के बारे में" else "About the app",
+                    subtitle = "About the app",
                     onClick = onNavigateToAbout,
                     textColor = textPrimary,
                     subColor = textSecondary,
@@ -382,76 +361,6 @@ fun SettingsScreen(
             initialRating = feedbackDialogRating,
             forceFormStage = feedbackForceForm,
             preSelectedCategory = feedbackPreSelectedCategory
-        )
-    }
-
-    // Language Dialog
-    if (showLanguageDialog) {
-        AlertDialog(
-            onDismissRequest = { showLanguageDialog = false },
-            title = {
-                Text(
-                    text = "Result Language",
-                    color = textPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = "Language selection applies only to scan results. The rest of the app remains in English.",
-                        fontSize = 13.sp,
-                        color = textSecondary,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                viewModel.currentLanguage = "en"
-                                showLanguageDialog = false
-                            }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = viewModel.currentLanguage != "hi",
-                            onClick = {
-                                viewModel.currentLanguage = "en"
-                                showLanguageDialog = false
-                            }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("English", color = textPrimary, fontSize = 16.sp)
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                viewModel.currentLanguage = "hi"
-                                showLanguageDialog = false
-                            }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = viewModel.currentLanguage == "hi",
-                            onClick = {
-                                viewModel.currentLanguage = "hi"
-                                showLanguageDialog = false
-                            }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("हिन्दी (Hindi)", color = textPrimary, fontSize = 16.sp)
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showLanguageDialog = false }) {
-                    Text("Close", color = PremiumColors.PrimaryAccent)
-                }
-            },
-            containerColor = cardBg
         )
     }
 
@@ -515,16 +424,14 @@ fun SettingsScreen(
             onDismissRequest = { showClearHistoryDialog = false },
             title = {
                 Text(
-                    text = if (isHindi) "इतिहास मिटाएं?" else "Clear History?",
+                    text = "Clear History?",
                     color = textPrimary,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
-                    text = if (isHindi) 
-                        "क्या आप सचमुच सभी एनालिसिस इतिहास मिटाना चाहते हैं? इसे वापस नहीं लाया जा सकता।" 
-                        else "Are you sure you want to clear all analysis records? This action cannot be undone.",
+                    text = "Are you sure you want to clear all analysis records? This action cannot be undone.",
                     color = textPrimary,
                     fontSize = 15.sp
                 )
@@ -536,13 +443,13 @@ fun SettingsScreen(
                         showClearHistoryDialog = false
                         android.widget.Toast.makeText(
                             context,
-                            if (isHindi) "इतिहास सफलतापूर्वक मिटा दिया गया" else "History cleared successfully",
+                            "History cleared successfully",
                             android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
                 ) {
                     Text(
-                        text = if (isHindi) "मिटाएं" else "Clear",
+                        text = "Clear",
                         color = PremiumColors.Danger,
                         fontWeight = FontWeight.Bold
                     )
@@ -551,7 +458,7 @@ fun SettingsScreen(
             dismissButton = {
                 TextButton(onClick = { showClearHistoryDialog = false }) {
                     Text(
-                        text = if (isHindi) "रद्द करें" else "Cancel",
+                        text = "Cancel",
                         color = textSecondary
                     )
                 }
@@ -589,26 +496,16 @@ fun SettingsScreen(
 
         val scoreTextVal = if (totalScans == 0) "--" else "$protectionScore%"
 
-        val labelStatus = if (isHindi) "सुरक्षा स्थिति" else "Protection Status"
-        val labelLastUpdated = if (isHindi) "अंतिम एनालिसिस" else "Last Analysis"
+        val labelStatus = "Protection Status"
+        val labelLastUpdated = "Last Analysis"
 
         val status = ProtectionStatusHelper.calculateStatus(history)
-        val statusTextVal = if (isHindi) {
-            when (status) {
-                ProtectionStatus.EXCELLENT -> "उत्कृष्ट"
-                ProtectionStatus.GOOD -> "अच्छा"
-                ProtectionStatus.NEEDS_ATTENTION -> "ध्यान दें"
-                ProtectionStatus.HIGH_RISK -> "उच्च जोखिम"
-                ProtectionStatus.UNKNOWN -> "कोई स्कैन डेटा नहीं"
-            }
-        } else {
-            when (status) {
-                ProtectionStatus.EXCELLENT -> "Excellent"
-                ProtectionStatus.GOOD -> "Good"
-                ProtectionStatus.NEEDS_ATTENTION -> "Attention"
-                ProtectionStatus.HIGH_RISK -> "High Risk"
-                ProtectionStatus.UNKNOWN -> "No Scan Data"
-            }
+        val statusTextVal = when (status) {
+            ProtectionStatus.EXCELLENT -> "Excellent"
+            ProtectionStatus.GOOD -> "Good"
+            ProtectionStatus.NEEDS_ATTENTION -> "Attention"
+            ProtectionStatus.HIGH_RISK -> "High Risk"
+            ProtectionStatus.UNKNOWN -> "No Scan Data"
         }
 
         val lastUpdatedVal = if (history.isNotEmpty()) {
@@ -623,14 +520,14 @@ fun SettingsScreen(
             "N/A"
         }
 
-        val labelTotal = if (isHindi) "कुल स्कैन" else "Total Scans"
-        val labelScam = if (isHindi) "खतरे मिले" else "Threats Detected"
-        val labelSafe = if (isHindi) "सुरक्षित संदेश" else "Safe Messages"
-        val labelSuspicious = if (isHindi) "संदिग्ध संदेश" else "Suspicious"
-        val labelScore = if (isHindi) "संरक्षण स्कोर" else "Protection Score"
-        val labelAppVersion = if (isHindi) "ऐप संस्करण" else "App Version"
-        val labelDbSize = if (isHindi) "डेटाबेस का आकार" else "Database Size"
-        val labelHistoryCount = if (isHindi) "इतिहास रिकॉर्ड" else "History Records"
+        val labelTotal = "Total Scans"
+        val labelScam = "Threats Detected"
+        val labelSafe = "Safe Messages"
+        val labelSuspicious = "Suspicious"
+        val labelScore = "Protection Score"
+        val labelAppVersion = "App Version"
+        val labelDbSize = "Database Size"
+        val labelHistoryCount = "History Records"
 
         AlertDialog(
             onDismissRequest = { showStatsDialog = false },
@@ -644,7 +541,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isHindi) "सुरक्षा आँकड़े" else "Security Statistics",
+                        text = "Security Statistics",
                         color = textPrimary,
                         fontWeight = FontWeight.Bold
                     )
@@ -658,7 +555,7 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = if (isHindi) "सुरक्षा इंजन प्रदर्शन मीट्रिक" else "Security Engine Performance Metrics",
+                        text = "Security Engine Performance Metrics",
                         style = TextStyle(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
@@ -749,7 +646,7 @@ fun SettingsScreen(
                     onClick = { showStatsDialog = false }
                 ) {
                     Text(
-                        text = if (isHindi) "बंद करें" else "Close",
+                        text = "Close",
                         color = PremiumColors.PrimaryAccent,
                         fontWeight = FontWeight.Bold
                     )

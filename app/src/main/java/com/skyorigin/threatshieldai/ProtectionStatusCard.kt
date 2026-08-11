@@ -32,7 +32,7 @@ fun ProtectionStatusCard(
     modifier: Modifier = Modifier
 ) {
     val isDark = LocalIsDark.current
-    val isHindi = false
+    val isHindi = viewModel.currentLanguage == "hi"
     
     val history = viewModel.analysesHistory
     val status = ProtectionStatusHelper.calculateStatus(history)

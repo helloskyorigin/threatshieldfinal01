@@ -63,7 +63,7 @@ fun HistoryScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (isHindi) "एनालिसिस इतिहास" else "Analysis History",
+                        text = "Analysis History",
                         style = TextStyle(
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
@@ -78,7 +78,7 @@ fun HistoryScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = if (isHindi) "होम पर वापस जाएं" else "Back to Home",
+                            contentDescription = "Back to Home",
                             tint = textColorPrimary
                         )
                     }
@@ -117,7 +117,7 @@ fun HistoryScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (isHindi) "वर्तमान सुरक्षा स्थिति" else "Current Protection Status",
+                        text = "Current Protection Status",
                         style = TextStyle(
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
@@ -148,22 +148,12 @@ fun HistoryScreen(
                                     .background(protectionStatus.color, CircleShape)
                             )
                             Text(
-                                text = if (isHindi) {
-                                    when (protectionStatus) {
-                                        ProtectionStatus.EXCELLENT -> "उत्कृष्ट"
-                                        ProtectionStatus.GOOD -> "अच्छा"
-                                        ProtectionStatus.NEEDS_ATTENTION -> "ध्यान दें"
-                                        ProtectionStatus.HIGH_RISK -> "उच्च जोखिम"
-                                        ProtectionStatus.UNKNOWN -> "कोई स्कैन डेटा नहीं"
-                                    }
-                                } else {
-                                    when (protectionStatus) {
-                                        ProtectionStatus.EXCELLENT -> "Excellent"
-                                        ProtectionStatus.GOOD -> "Good"
-                                        ProtectionStatus.NEEDS_ATTENTION -> "Attention"
-                                        ProtectionStatus.HIGH_RISK -> "High Risk"
-                                        ProtectionStatus.UNKNOWN -> "No Scan Data"
-                                    }
+                                text = when (protectionStatus) {
+                                    ProtectionStatus.EXCELLENT -> "Excellent"
+                                    ProtectionStatus.GOOD -> "Good"
+                                    ProtectionStatus.NEEDS_ATTENTION -> "Attention"
+                                    ProtectionStatus.HIGH_RISK -> "High Risk"
+                                    ProtectionStatus.UNKNOWN -> "No Scan Data"
                                 },
                                 style = TextStyle(
                                     fontSize = 12.sp,
@@ -220,15 +210,7 @@ fun HistoryScreen(
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = if (isHindi) {
-                                        when (label) {
-                                            "Total" -> "कुल"
-                                            "Scam" -> "स्कैम"
-                                            "Safe" -> "सुरक्षित"
-                                            "Suspicious" -> "संदिग्ध"
-                                            else -> label
-                                        }
-                                    } else label,
+                                    text = label,
                                     style = TextStyle(
                                         fontSize = 10.5.sp,
                                         fontWeight = FontWeight.Bold,
@@ -265,15 +247,7 @@ fun HistoryScreen(
                                     .shadow(if (isSelected && !isDark) 2.dp else 0.dp, RoundedCornerShape(20.dp))
                             ) {
                                 Text(
-                                    text = if (isHindi) {
-                                        when (filter) {
-                                            "All" -> "सभी"
-                                            "Safe" -> "Safe"
-                                            "Suspicious" -> "Suspicious"
-                                            "Danger" -> "Danger"
-                                            else -> filter
-                                        }
-                                    } else filter,
+                                    text = filter,
                                     color = chipText,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
@@ -317,7 +291,7 @@ fun HistoryScreen(
                         Spacer(modifier = Modifier.height(20.dp))
                         
                         Text(
-                            text = if (isHindi) "कोई एनालिसिस इतिहास नहीं है।" else "No analysis history yet.",
+                            text = "No analysis history yet.",
                             style = TextStyle(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
@@ -328,7 +302,7 @@ fun HistoryScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         Text(
-                            text = if (isHindi) "अपना सुरक्षा इतिहास बनाने के लिए स्कैनिंग शुरू करें।" else "Start scanning to build your security history.",
+                            text = "Start scanning to build your security history.",
                             style = TextStyle(
                                 fontSize = 14.sp,
                                 color = textColorSecondary,
@@ -348,14 +322,14 @@ fun HistoryScreen(
                             onDismissRequest = { showDeleteDialog = false },
                             title = {
                                 Text(
-                                    text = if (isHindi) "इतिहास प्रविष्टि हटाएं?" else "Delete History Entry?",
+                                    text = "Delete History Entry?",
                                     fontWeight = FontWeight.Bold,
                                     color = textColorPrimary
                                 )
                             },
                             text = {
                                 Text(
-                                    text = if (isHindi) "क्या आप निश्चित रूप से इस एनालिसिस रिकॉर्ड को अपने device से हटाना चाहते हैं?" else "Are you sure you want to remove this analysis record from your device?",
+                                    text = "Are you sure you want to remove this analysis record from your device?",
                                     color = textColorSecondary,
                                     fontSize = 14.sp
                                 )
@@ -368,7 +342,7 @@ fun HistoryScreen(
                                     },
                                     colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFEF4444))
                                 ) {
-                                    Text(if (isHindi) "हटाएं" else "Delete", fontWeight = FontWeight.Bold)
+                                    Text("Delete", fontWeight = FontWeight.Bold)
                                 }
                             },
                             dismissButton = {
@@ -376,7 +350,7 @@ fun HistoryScreen(
                                     onClick = { showDeleteDialog = false },
                                     colors = ButtonDefaults.textButtonColors(contentColor = textColorSecondary)
                                 ) {
-                                    Text(if (isHindi) "रद्द करें" else "Cancel")
+                                    Text("Cancel")
                                 }
                             },
                             containerColor = cardBg,
@@ -471,7 +445,7 @@ fun HistoryCardItem(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = if (isHindi) "Risk Score: ${item.score}%" else "Match Score: ${item.score}%",
+                        text = "Match Score: ${item.score}%",
                         fontSize = 12.sp,
                         color = textSecondary,
                         fontWeight = FontWeight.Bold

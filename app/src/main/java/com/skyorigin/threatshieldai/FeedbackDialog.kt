@@ -50,7 +50,7 @@ fun FeedbackDialog(
     preSelectedCategory: String? = null
 ) {
     val isDark = LocalIsDark.current
-    val isHindi = false
+    val isHindi = viewModel.currentLanguage == "hi"
     val context = LocalContext.current
     
     val textPrimary = MaterialTheme.colorScheme.onBackground

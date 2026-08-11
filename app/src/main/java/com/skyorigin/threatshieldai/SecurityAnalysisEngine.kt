@@ -428,9 +428,10 @@ object SecurityAnalysisEngine {
     suspend fun performHybridAnalysis(
         context: android.content.Context?,
         text: String,
-        isHindi: Boolean,
+        isHindi: Boolean = false,
         onUrlScanProgress: ((UrlScanProgress) -> Unit)? = null
     ): HybridAnalysisResult = withContext(Dispatchers.IO) {
+        val isHindi = false
         val overallStartTime = System.currentTimeMillis()
         
         if (context != null && !isInternetAvailable(context)) {
@@ -522,9 +523,9 @@ object SecurityAnalysisEngine {
                       "confidence_reason": "One short sentence explaining why.",
                       "scam_category": "OTP Scam" | "Bank Impersonation" | "Fake KYC" | "Parcel Scam" | "Lottery Scam" | "Investment Scam" | "Credential Harvesting" | "Fake Support" | "UPI Fraud" | "Refund Scam" | "Government Impersonation" | "Telecom Impersonation" | "Brand Impersonation" | "Social Engineering" | "None",
                       "short_reason": "One concise sentence summarizing the main security/scam aspect.",
-                      "ai_summary": "A detailed 2-3 sentence explanation of the security analysis.",
-                      "extracted_signals": ["Concise signal 1", "Concise signal 2"],
-                      "advice": ["Concise next step 1", "Concise next step 2"]
+                      "ai_summary": "A detailed 2-3 complete sentences explanation of the security assessment and context.",
+                      "extracted_signals": ["Distinct signal 1", "Distinct signal 2", "Distinct signal 3", "Distinct signal 4"],
+                      "advice": ["Actionable recommendation 1", "Actionable recommendation 2", "Actionable recommendation 3", "Actionable recommendation 4"]
                     }
 
                     CONFIDENCE RULES (MUST BE 50 TO 99):
@@ -537,12 +538,13 @@ object SecurityAnalysisEngine {
 
                     OUTPUT RULES:
                     - Output ONLY valid JSON. No markdown, no explanations outside JSON, no chain-of-thought, no prefix/suffix.
-                    - Keep "short_reason", "extracted_signals", and "advice" extremely concise to minimize token usage.
-                    - Keep "ai_summary" to a maximum of 2 short lines.
-                    - LANGUAGE STYLE: If Hindi/Hinglish is requested, write all text in natural Hindi/Hinglish while keeping technical and English terms in English (e.g., OTP, KYC, URL, APK, Phishing, Scam, Link, Bank, Account, PIN, App, etc.).
+                    - "ai_summary" MUST contain 2 to 3 complete, meaningful sentences explaining the overall assessment without repeating the verdict.
+                    - "extracted_signals" MUST contain 3 to 5 distinct points explaining the reasons behind the risk classification.
+                    - "advice" MUST contain 3 to 5 actionable recommendations specific to the risk.
+                    - LANGUAGE STYLE: Write all responses, summaries, reasons, signals, advice, and scam_category in simple, clear, concise English that is easy for ordinary people to understand.
                 """.trimIndent()
 
-                val userPrompt = "Message to analyze: \"$normalizedMessage\"" + (if (uniqueUrls.isNotEmpty()) "\nNote: The URL(s) in this message are successfully being checked by Google Web Risk. Analyze the context of the message itself to decide if it is SAFE, SUSPICIOUS, or DANGEROUS, or UNABLE_TO_DETERMINE." else "") + (if (isHindi) " (Provide ALL JSON values in Hindi/Hinglish)" else " (Provide ALL JSON values in English)")
+                val userPrompt = "Message to analyze: \"$normalizedMessage\"" + (if (uniqueUrls.isNotEmpty()) "\nNote: The URL(s) in this message are successfully being checked by Google Web Risk. Analyze the context of the message itself to decide if it is SAFE, SUSPICIOUS, or DANGEROUS, or UNABLE_TO_DETERMINE." else "") + " (Provide ALL JSON values in simple, clear English)"
 
                 var successfulModelResult: JSONObject? = null
 
@@ -846,11 +848,7 @@ object SecurityAnalysisEngine {
             textConfidence = aiOutput!!.optInt("confidence", 75)
             shortReason = aiOutput!!.optString("short_reason", "")
             val rawAiSummary = aiOutput!!.optString("ai_summary", "").ifEmpty { aiOutput!!.optString("summary", "") }.ifEmpty { shortReason }
-            aiSummary = if (isHindi) {
-                generateDynamicSummary(normalizedMessage, extractedSignals, rawAiSummary.ifEmpty { shortReason }, true)
-            } else {
-                rawAiSummary
-            }
+            aiSummary = rawAiSummary.ifEmpty { shortReason }
             
             // Derive a generic scam category since it's no longer in the schema
             var rawScamCategory = aiOutput!!.optString("scam_category", "Unknown")
@@ -868,30 +866,32 @@ object SecurityAnalysisEngine {
                     "Safe Message"
                 }
             }
-            scamCategory = if (isHindi) translateScamCategoryToHindi(rawScamCategory) else rawScamCategory
+            scamCategory = rawScamCategory
             
             val signalsArr = aiOutput!!.optJSONArray("extracted_signals")
             if (signalsArr != null) {
                 for (i in 0 until signalsArr.length()) {
                     val s = signalsArr.optString(i)
                     if (s.isNotEmpty()) {
-                        val processedS = if (isHindi) translateSignalToHindi(s) else s
-                        if (!extractedSignals.contains(processedS)) {
-                            extractedSignals.add(processedS)
+                        if (!extractedSignals.contains(s)) {
+                            extractedSignals.add(s)
                         }
                     }
                 }
             }
             
             val adviceArr = aiOutput!!.optJSONArray("advice")
-            if (adviceArr != null && !isHindi) {
+            if (adviceArr != null) {
                 for (i in 0 until adviceArr.length()) {
-                    adviceList.add(adviceArr.optString(i))
+                    val a = adviceArr.optString(i)
+                    if (a.isNotEmpty()) {
+                        adviceList.add(a)
+                    }
                 }
             }
-            if (adviceList.isEmpty() || isHindi) {
+            if (adviceList.isEmpty()) {
                 adviceList.clear()
-                adviceList.addAll(generateDynamicAdvice(normalizedMessage, extractedSignals, isHindi))
+                adviceList.addAll(generateDynamicAdvice(normalizedMessage, extractedSignals, false))
             }
             
             textScore = scamProb
@@ -1112,17 +1112,9 @@ object SecurityAnalysisEngine {
 
         if (aiStatus == "failed") {
             shortReason = if (extractedSignals.isNotEmpty()) {
-                if (isHindi) {
-                    "संदेश में संभावित धोखाधड़ी या संदिग्ध पैटर्न पाए गए: ${extractedSignals.take(3).joinToString(", ")}।"
-                } else {
-                    "Security analysis identified potential deceptive patterns: ${extractedSignals.take(3).joinToString(", ")}."
-                }
+                "Security analysis identified potential deceptive patterns: ${extractedSignals.take(3).joinToString(", ")}."
             } else {
-                if (isHindi) {
-                    "संदेश का सुरक्षा विश्लेषण पूरा हुआ। इसमें कोई ज्ञात फ़िशिंग लिंक या संदिग्ध पैटर्न नहीं पाया गया।"
-                } else {
-                    "Security analysis verified message integrity with no phishing links or deceptive indicators detected."
-                }
+                "Security analysis verified message integrity with no phishing links or deceptive indicators detected."
             }
         }
 
@@ -1164,14 +1156,10 @@ object SecurityAnalysisEngine {
             aiClassification = "SAFE"
             textScore = minOf(textScore, 15)
             scamCategory = "Safe Promotional Offer"
-            shortReason = if (isHindi) {
-                "संदेश में कोई सुरक्षा खतरा या संदिग्ध पैटर्न नहीं पाया गया।"
+            shortReason = if (lowerMsg.contains("recharge")) {
+                "No security threats or suspicious scam patterns detected in message content or links. Standard recharge confirmation."
             } else {
-                if (lowerMsg.contains("recharge")) {
-                    "No security threats or suspicious scam patterns detected in message content or links. Standard recharge confirmation."
-                } else {
-                    "No security threats or suspicious scam patterns detected in message content or links. Standard promotional message."
-                }
+                "No security threats or suspicious scam patterns detected in message content or links. Standard promotional message."
             }
         }
 
@@ -1455,25 +1443,17 @@ object SecurityAnalysisEngine {
         } else if (finalVerdict == "Safe") {
             reasons.add("No malicious URL or scam indicators detected.")
         } else if (finalVerdict == "Unable to Determine") {
-            reasons.add(if (isHindi) "संदेश में पर्याप्त संदर्भ नहीं है।" else "Not enough context in the message to analyze.")
+            reasons.add("Not enough context in the message to analyze.")
         } else if (finalVerdict == "Scan Incomplete") {
             reasons.add("Scan Incomplete: Security API services are offline.")
         }
         
         val finalReasonStr = if (hasConfirmedWebRiskThreat) {
-            if (isHindi) {
-                "इस message में एक known dangerous Link detect हुआ है। इस Link को open न करें और sender के साथ personal या sensitive information share न करें।"
-            } else {
-                "A known dangerous link was detected in this message. Do not open the link or share personal or sensitive information with the sender."
-            }
+            "A known dangerous link was detected in this message. Do not open the link or share personal or sensitive information with the sender."
         } else if (finalVerdict == "Unable to Determine") {
-            if (isHindi) {
-                "इस message में reliable scam assessment के लिए पर्याप्त जानकारी नहीं है। अधिक context के बिना यह confirm नहीं किया जा सकता कि message safe है या scam."
-            } else {
-                "There isn't enough information in this message to reliably determine whether it is safe or a scam."
-            }
+            "There isn't enough information in this message to reliably determine whether it is safe or a scam."
         } else if (isCase3) {
-            generateDynamicSummary(normalizedMessage, extractedSignals, shortReason, isHindi)
+            generateDynamicSummary(normalizedMessage, extractedSignals, shortReason, false)
         } else if (extractedUrls.isEmpty()) {
             // Case 6: Text-only analysis summary
             if (shortReason.isNotEmpty() && !shortReason.contains("local context-aware") && !shortReason.contains("No suspicious")) {
@@ -1489,70 +1469,45 @@ object SecurityAnalysisEngine {
 
         // RECOMMENDATION ENGINE
         val adviceListCustom = if (hasConfirmedWebRiskThreat) {
-            if (isHindi) {
-                listOf(
-                    "detected Link को बिल्कुल न खोलें।",
-                    "personal, financial, login, OTP या sensitive information share न करें।",
-                    "आवश्यकता होने पर official channel के माध्यम से sender को verify करें।",
-                    "उचित होने पर sender को block/report करें।"
-                )
-            } else {
-                listOf(
-                    "Do not open the detected Link.",
-                    "Do not enter personal, financial, login, OTP, or other sensitive information.",
-                    "Verify the sender through an official channel if necessary.",
-                    "Block/report the sender when appropriate."
-                )
-            }
+            listOf(
+                "Do not open the detected Link.",
+                "Do not enter personal, financial, login, OTP, or other sensitive information.",
+                "Verify the sender through an official channel if necessary.",
+                "Block/report the sender when appropriate."
+            )
         } else if (isCase3) {
-            generateDynamicAdvice(normalizedMessage, extractedSignals, isHindi)
+            generateDynamicAdvice(normalizedMessage, extractedSignals, false)
         } else if (extractedUrls.isEmpty()) {
             // Case 6: Text-only advice
             if (adviceList.isNotEmpty()) {
                 adviceList
             } else {
                 when (finalVerdict) {
-                    "Safe" -> listOf(if (isHindi) "यह संदेश सुरक्षित लग रहा है। सामान्य सावधानी बरतें।" else "This message appears safe. Proceed with normal caution.")
-                    "Suspicious" -> listOf(if (isHindi) "Action लेने से पहले sender को verify करें।" else "Verify sender before taking any action.")
-                    "Warning" -> listOf(if (isHindi) "Sender की पहचान की पुष्टि होने तक कोई जानकारी साझा न करें।" else "Do not share any information until sender's identity is confirmed.")
+                    "Safe" -> listOf("This message appears safe. Proceed with normal caution.")
+                    "Suspicious" -> listOf("Verify sender before taking any action.")
+                    "Warning" -> listOf("Do not share any information until sender's identity is confirmed.")
                     "Danger" -> listOf(
-                        if (isHindi) "इस संदेश के जवाब में कोई संवेदनशील जानकारी न भेजें।" else "Do not share sensitive information in response to this message.",
-                        if (isHindi) "इस नंबर को ब्लॉक करें।" else "Block this sender."
+                        "Do not share sensitive information in response to this message.",
+                        "Block this sender."
                     )
-                    "Unable to Determine" -> listOf(if (isHindi) "Sender को verify करें और confirm किए बिना sensitive information share न करें।" else "Verify the sender and do not share sensitive information without confirmation.")
-                    else -> listOf(if (isHindi) "सावधानी बरतें।" else "Proceed with caution.")
+                    "Unable to Determine" -> listOf("Verify the sender and do not share sensitive information without confirmation.")
+                    else -> listOf("Proceed with caution.")
                 }
             }
         } else {
             when (finalVerdict) {
-                "Safe" -> listOf(
-                    if (isHindi) "Normal सावधानी के साथ आगे बढ़ें।" else "Proceed with normal caution."
+                "Safe" -> listOf("Proceed with normal caution.")
+                "Suspicious" -> listOf("Verify sender before taking action.")
+                "Warning" -> listOf("Avoid clicking links until verified.")
+                "Danger" -> listOf(
+                    "Do not click the link.",
+                    "Do not share OTP or personal credentials.",
+                    "Block sender if appropriate."
                 )
-                "Suspicious" -> listOf(
-                    if (isHindi) "Action लेने से पहले sender को verify करें।" else "Verify sender before taking action."
-                )
-                "Warning" -> listOf(
-                    if (isHindi) "Verify होने तक link पर click न करें।" else "Avoid clicking links until verified."
-                )
-                "Danger" -> if (isHindi) {
-                    listOf(
-                        "Link पर click न करें।",
-                        "OTP साझा न करें।",
-                        "ज़रूरत पड़ने पर sender को block करें।"
-                    )
-                } else {
-                    listOf(
-                        "Do not click.",
-                        "Do not share OTP.",
-                        "Block sender if appropriate."
-                    )
-                }
                 "Unable to Determine" -> listOf(
-                    if (isHindi) "Sender को verify करें और confirm किए बिना sensitive information share न करें या कोई important action न लें।" else "Verify the sender and do not share sensitive information or take important action without confirmation."
+                    "Verify the sender and do not share sensitive information or take important action without confirmation."
                 )
-                else -> listOf(
-                    if (isHindi) "कृपया बाद में प्रयास करें।" else "Please try again later."
-                )
+                else -> listOf("Please try again later.")
             }
         }
 
@@ -1569,6 +1524,18 @@ object SecurityAnalysisEngine {
         val processingTime = System.currentTimeMillis() - overallStartTime
         Log.d("UrlReputationEngine", "[Threat Fusion completed] Time: ${processingTime}ms, Cache hits: (checked dynamically), Verdict: $finalVerdict")
 
+        val rawSummary = if (aiSummary.isNotEmpty()) aiSummary else (if (shortReason.isNotEmpty() && !shortReason.contains("local context-aware")) shortReason else explainabilityRes.summary)
+        val rawSignals = (extractedSignals + explainabilityRes.whyFlagged).distinct()
+        val rawAdvice = adviceListCustom
+
+        val (enforcedSummary, enforcedSignals, enforcedAdvice) = sanitizeAndEnforceContent(
+            summary = rawSummary,
+            signals = rawSignals,
+            advice = rawAdvice,
+            verdict = finalVerdict,
+            message = normalizedMessage
+        )
+
         return@withContext HybridAnalysisResult(
             verdict = finalVerdict,
             riskScore = finalScore,
@@ -1577,15 +1544,13 @@ object SecurityAnalysisEngine {
             originalMessage = originalMessage,
             normalizedMessage = normalizedMessage,
             urlsFound = urlResults,
-            textSignals = (extractedSignals + explainabilityRes.whyFlagged).distinct().ifEmpty { 
-                listOf(if (finalVerdict == "Safe") "No scam indicators detected" else if (finalVerdict == "Unable to Determine") "Insufficient context" else "Suspicious indicator detected")
-            },
-            finalReason = if (aiSummary.isNotEmpty()) aiSummary else (if (shortReason.isNotEmpty() && !shortReason.contains("local context-aware")) shortReason else finalReasonStr),
+            textSignals = enforcedSignals,
+            finalReason = enforcedSummary,
             webRiskStatus = webRiskConso,
             aiStatus = aiStatus,
             scamType = scamCategory,
-            advice = adviceListCustom,
-            summary = if (aiSummary.isNotEmpty()) aiSummary else (if (shortReason.isNotEmpty() && !shortReason.contains("local context-aware")) shortReason else explainabilityRes.summary),
+            advice = enforcedAdvice,
+            summary = enforcedSummary,
             textVerdict = textVerdict,
             urlVerdict = overallUrlVerdict,
             phishtankStatus = phishtankConso,
@@ -1594,41 +1559,115 @@ object SecurityAnalysisEngine {
         )
     }
 
-    private fun generateDynamicAdvice(message: String, signals: List<String>, isHindi: Boolean): List<String> {
+    private fun sanitizeAndEnforceContent(
+        summary: String,
+        signals: List<String>,
+        advice: List<String>,
+        verdict: String,
+        message: String
+    ): Triple<String, List<String>, List<String>> {
+        val cleanedSummary = if (summary.isBlank() || summary.length < 30 || summary.split(Regex("(?<=[.!?])\\s+")).size < 2) {
+            when (verdict.uppercase()) {
+                "DANGER" -> "This message exhibits clear fraudulent patterns and high-risk security indicators. It attempts to deceive the recipient through malicious links or social engineering tactics. Immediate caution and strict security precautions are strongly advised."
+                "SUSPICIOUS" -> "This message contains unverified requests and potential warning signals that require careful attention. While definitive malice is not fully confirmed, interacting with the links or providing information carries notable risk."
+                "SAFE" -> "This message appears to be a legitimate personal or informational communication. No suspicious language, fraudulent intent, or dangerous security indicators were detected during the analysis."
+                else -> "The message context has been analyzed across multiple threat parameters. While some indicators were evaluated, insufficient definitive evidence prevents a conclusive security rating at this time."
+            }
+        } else {
+            val sentences = summary.split(Regex("(?<=[.!?])\\s+")).filter { it.isNotBlank() }
+            if (sentences.size < 2) {
+                val addition = when (verdict.uppercase()) {
+                    "DANGER" -> " Exercise extreme caution and do not interact with any links or prompts provided in the message."
+                    "SUSPICIOUS" -> " Verify the authenticity of the request through official channels before proceeding further."
+                    "SAFE" -> " You can proceed with normal communication without security concerns."
+                    else -> " Please evaluate the context carefully before taking any action."
+                }
+                summary.trim() + addition
+            } else {
+                summary
+            }
+        }
+
+        val cleanedSignals = mutableListOf<String>()
+        for (s in signals) {
+            val trimmed = s.trim()
+            if (trimmed.isNotEmpty() && !cleanedSignals.contains(trimmed)) {
+                cleanedSignals.add(trimmed)
+            }
+        }
+        val fallbackSignals = when (verdict.uppercase()) {
+            "DANGER" -> listOf(
+                "High-risk threat indicators identified in message context",
+                "Potential malicious URL or social engineering tactic detected",
+                "Urgency or coercive pressure language pattern present",
+                "Request for sensitive personal or financial information"
+            )
+            "SUSPICIOUS" -> listOf(
+                "Unverified request or unusual communication pattern",
+                "Potential impersonation or external link reference",
+                "Requires careful verification through official channels"
+            )
+            "SAFE" -> listOf(
+                "Standard personal or informational communication format",
+                "No malicious URLs or phishing signatures detected",
+                "No requests for sensitive credentials or security codes"
+            )
+            else -> listOf(
+                "General message context evaluated",
+                "Standard formatting and tone observed",
+                "No critical threat signatures identified"
+            )
+        }
+
+        while (cleanedSignals.size < 3) {
+            val nextFallback = fallbackSignals.firstOrNull { !cleanedSignals.contains(it) } ?: "Contextual security parameter evaluated"
+            cleanedSignals.add(nextFallback)
+        }
+        val finalSignals = cleanedSignals.take(5)
+
+        val cleanedAdvice = mutableListOf<String>()
+        for (a in advice) {
+            val trimmed = a.trim()
+            if (trimmed.isNotEmpty() && !cleanedAdvice.contains(trimmed)) {
+                cleanedAdvice.add(trimmed)
+            }
+        }
+        val fallbackAdvice = listOf(
+            "Verify the sender's true identity through an official, trusted communication channel.",
+            "Do not click on unverified links, short URLs, or unknown file attachments.",
+            "Never share sensitive personal information, banking credentials, PINs, or OTPs.",
+            "Report and block suspicious senders immediately if any coercion is attempted."
+        )
+
+        while (cleanedAdvice.size < 3) {
+            val nextFallback = fallbackAdvice.firstOrNull { !cleanedAdvice.contains(it) } ?: "Exercise caution and consult official support if unsure."
+            cleanedAdvice.add(nextFallback)
+        }
+        val finalAdvice = cleanedAdvice.take(5)
+
+        return Triple(cleanedSummary, finalSignals, finalAdvice)
+    }
+
+    private fun generateDynamicAdvice(message: String, signals: List<String>, isHindi: Boolean = false): List<String> {
         val lowerMsg = message.lowercase()
         val advice = mutableListOf<String>()
 
-        if (isHindi) {
-            advice.add("कोई भी Action लेने से पहले sender की पहचान (official number/channel) से verify करें।")
-            advice.add("इस message या link पर click करके अपनी personal, banking, या OTP जैसी संवेदनशील जानकारी बिल्कुल share न करें।")
-            
-            if (lowerMsg.contains("bank") || lowerMsg.contains("sbi") || lowerMsg.contains("hdfc") || lowerMsg.contains("icici") || lowerMsg.contains("axis") || lowerMsg.contains("paytm") || lowerMsg.contains("card") || lowerMsg.contains("account")) {
-                advice.add("बैंक से संबंधित कार्य के लिए हमेशा बैंक के official app या official netbanking website का ही उपयोग करें।")
-            } else if (lowerMsg.contains("recharge") || lowerMsg.contains("airtel") || lowerMsg.contains("jio") || lowerMsg.contains("bsnl") || lowerMsg.contains("vi")) {
-                advice.add("रिचार्ज करने के लिए केवल official MyAirtel, MyJio या official telecom provider app का उपयोग करें।")
-            } else if (lowerMsg.contains("kyc") || lowerMsg.contains("verify") || lowerMsg.contains("update")) {
-                advice.add("KYC या verification updates के लिए सीधे आधिकारिक कार्यालय या official service app का उपयोग करें।")
-            } else {
-                advice.add("यदि आवश्यक हो, तो brand की आधिकारिक website/app का उपयोग करके पुष्टि करें।")
-            }
+        advice.add("Verify the sender's identity through an official channel before taking any action.")
+        advice.add("Do not enter or share personal, financial, login, OTP, or other sensitive details.")
+        
+        if (lowerMsg.contains("bank") || lowerMsg.contains("sbi") || lowerMsg.contains("hdfc") || lowerMsg.contains("icici") || lowerMsg.contains("axis") || lowerMsg.contains("paytm") || lowerMsg.contains("card") || lowerMsg.contains("account")) {
+            advice.add("Always use the bank's official app or official website to check your account status.")
+        } else if (lowerMsg.contains("recharge") || lowerMsg.contains("airtel") || lowerMsg.contains("jio") || lowerMsg.contains("bsnl") || lowerMsg.contains("vi")) {
+            advice.add("Use your telecom provider's official mobile application to complete any recharge or updates.")
+        } else if (lowerMsg.contains("kyc") || lowerMsg.contains("verify") || lowerMsg.contains("update")) {
+            advice.add("Handle KYC or account verification directly on the brand's official platform or store location.")
         } else {
-            advice.add("Verify the sender's identity through an official channel before taking any action.")
-            advice.add("Do not enter or share personal, financial, login, OTP, or other sensitive details.")
-            
-            if (lowerMsg.contains("bank") || lowerMsg.contains("sbi") || lowerMsg.contains("hdfc") || lowerMsg.contains("icici") || lowerMsg.contains("axis") || lowerMsg.contains("paytm") || lowerMsg.contains("card") || lowerMsg.contains("account")) {
-                advice.add("Always use the bank's official app or official website to check your account status.")
-            } else if (lowerMsg.contains("recharge") || lowerMsg.contains("airtel") || lowerMsg.contains("jio") || lowerMsg.contains("bsnl") || lowerMsg.contains("vi")) {
-                advice.add("Use your telecom provider's official mobile application to complete any recharge or updates.")
-            } else if (lowerMsg.contains("kyc") || lowerMsg.contains("verify") || lowerMsg.contains("update")) {
-                advice.add("Handle KYC or account verification directly on the brand's official platform or store location.")
-            } else {
-                advice.add("Access the brand's services safely using their official app/site rather than external links.")
-            }
+            advice.add("Access the brand's services safely using their official app/site rather than external links.")
         }
         return advice
     }
 
-    private fun generateDynamicSummary(message: String, signals: List<String>, shortReason: String, isHindi: Boolean): String {
+    private fun generateDynamicSummary(message: String, signals: List<String>, shortReason: String, isHindi: Boolean = false): String {
         if (shortReason.isNotEmpty() && 
             !shortReason.contains("local context-aware") && 
             !shortReason.contains("No suspicious") && 
@@ -1637,41 +1676,21 @@ object SecurityAnalysisEngine {
             return shortReason
         }
         val lowerMsg = message.lowercase()
-        return if (isHindi) {
-            when {
-                lowerMsg.contains("bank") || lowerMsg.contains("sbi") || lowerMsg.contains("hdfc") || lowerMsg.contains("icici") || lowerMsg.contains("card") || lowerMsg.contains("account") -> {
-                    "इस message में एक unflagged URL है, लेकिन बैंक जैसी संस्था की impersonation और verification का संदिग्ध अनुरोध किया गया है।"
-                }
-                lowerMsg.contains("kyc") || lowerMsg.contains("verify") || lowerMsg.contains("update") -> {
-                    "यद्यपि reputation sources द्वारा URL को सुरक्षित बताया गया है, परंतु message का कूट संदर्भ (KYC/Account Verification) संदिग्ध गतिविधि की ओर संकेत करता है।"
-                }
-                lowerMsg.contains("won") || lowerMsg.contains("prize") || lowerMsg.contains("lottery") || lowerMsg.contains("reward") -> {
-                    "संदेश में अपुष्ट इनाम या लॉटरी का लालच देकर Action लेने का अनुरोध किया गया है, जो एक संभावित धोखाधड़ी का संकेत है।"
-                }
-                lowerMsg.contains("urgent") || lowerMsg.contains("immediate") || lowerMsg.contains("suspended") -> {
-                    "असामान्य तात्कालिकता (Urgency) और दबाव वाले शब्दों के साथ URL का उपयोग किया गया है, जो संदिग्ध पैटर्न को प्रदर्शित करता है।"
-                }
-                else -> {
-                    "URL पर कोई ज्ञात खतरा नहीं पाया गया, लेकिन संदेश का संदर्भ असामान्य दबाव या प्रलोभन के कारण संदिग्ध प्रतीत होता है।"
-                }
+        return when {
+            lowerMsg.contains("bank") || lowerMsg.contains("sbi") || lowerMsg.contains("hdfc") || lowerMsg.contains("icici") || lowerMsg.contains("card") || lowerMsg.contains("account") -> {
+                "Although reputation sources did not flag the URL, the message impersonates a financial institution requesting urgent account verification."
             }
-        } else {
-            when {
-                lowerMsg.contains("bank") || lowerMsg.contains("sbi") || lowerMsg.contains("hdfc") || lowerMsg.contains("icici") || lowerMsg.contains("card") || lowerMsg.contains("account") -> {
-                    "Although reputation sources did not flag the URL, the message impersonates a financial institution requesting urgent account verification."
-                }
-                lowerMsg.contains("kyc") || lowerMsg.contains("verify") || lowerMsg.contains("update") -> {
-                    "The URL is currently clean, but the message requests an unsolicited account/KYC update, which is a common phishing behavior."
-                }
-                lowerMsg.contains("won") || lowerMsg.contains("prize") || lowerMsg.contains("lottery") || lowerMsg.contains("reward") -> {
-                    "The message claims an unexpected reward or prize to entice you to click the link, presenting a classic scam pattern."
-                }
-                lowerMsg.contains("urgent") || lowerMsg.contains("immediate") || lowerMsg.contains("suspended") -> {
-                    "The message creates unusual urgency and demands action, indicating a suspicious contextual threat despite no known URL flag."
-                }
-                else -> {
-                    "No known URL threat was detected, but the complete context of the message exhibits suspicious patterns and unexpected requests."
-                }
+            lowerMsg.contains("kyc") || lowerMsg.contains("verify") || lowerMsg.contains("update") -> {
+                "The URL is currently clean, but the message requests an unsolicited account/KYC update, which is a common phishing behavior."
+            }
+            lowerMsg.contains("won") || lowerMsg.contains("prize") || lowerMsg.contains("lottery") || lowerMsg.contains("reward") -> {
+                "The message claims an unexpected reward or prize to entice you to click the link, presenting a classic scam pattern."
+            }
+            lowerMsg.contains("urgent") || lowerMsg.contains("immediate") || lowerMsg.contains("suspended") -> {
+                "The message creates unusual urgency and demands action, indicating a suspicious contextual threat despite no known URL flag."
+            }
+            else -> {
+                "No known URL threat was detected, but the complete context of the message exhibits suspicious patterns and unexpected requests."
             }
         }
     }
@@ -1688,7 +1707,7 @@ object SecurityAnalysisEngine {
         val isLotteryScam = clean.contains("won ₹50,000 cash prize") || clean.contains("threat-shield-scam-reward.net")
         val isOtpScam = clean.contains("password reset request") && clean.contains("6-digit otp code")
 
-        return when {
+        val rawResult = when {
             isSafeSample -> {
                 HybridAnalysisResult(
                     verdict = "Safe",
@@ -1698,29 +1717,13 @@ object SecurityAnalysisEngine {
                     originalMessage = normalized,
                     normalizedMessage = normalized,
                     urlsFound = emptyList(),
-                    textSignals = if (isHindi) {
-                        listOf("व्यक्तिगत बातचीत (Personal talk)", "सामान्य अनौपचारिक बातचीत", "कोई धोखाधड़ी या संदिग्ध शब्द नहीं मिले")
-                    } else {
-                        listOf("Personal communication", "Normal informal conversation", "No phishing/fraud triggers found")
-                    },
-                    finalReason = if (isHindi) {
-                        "यह एक सामान्य व्यक्तिगत/सूचनात्मक संदेश है। इसमें कोई संदिग्ध Link, वित्तीय खतरे, OTP अनुरोध या Phishing संकेत नहीं पाए गए हैं।"
-                    } else {
-                        "This is a standard personal/informational text message. No malicious links, urgent financial threats, OTP requests, or phishing signals were detected."
-                    },
+                    textSignals = listOf("Personal communication", "Normal informal conversation", "No phishing/fraud triggers found"),
+                    finalReason = "This is a standard personal/informational text message. No malicious links, urgent financial threats, OTP requests, or phishing signals were detected.",
                     webRiskStatus = "OK",
                     aiStatus = "ok",
-                    scamType = if (isHindi) "वैध संदेश (Legitimate)" else "Legitimate Message",
-                    advice = if (isHindi) {
-                        listOf("यह संदेश सुरक्षित है।", "आप सामान्य रूप से बातचीत जारी रख सकते हैं।", "कोई विशेष सावधानी की आवश्यकता नहीं है।")
-                    } else {
-                        listOf("This message is completely safe.", "You can proceed with normal response.", "No precautions needed.")
-                    },
-                    summary = if (isHindi) {
-                        "बिना किसी सुरक्षा खतरे के सामान्य व्यक्तिगत संदेश।"
-                    } else {
-                        "Legitimate personal message with zero threat indicators."
-                    },
+                    scamType = "Legitimate Message",
+                    advice = listOf("This message is completely safe.", "You can proceed with normal response.", "No precautions needed."),
+                    summary = "Legitimate personal message with zero threat indicators.",
                     textVerdict = "Safe",
                     urlVerdict = "Safe",
                     phishtankStatus = "OK",
@@ -1737,29 +1740,13 @@ object SecurityAnalysisEngine {
                     originalMessage = normalized,
                     normalizedMessage = normalized,
                     urlsFound = emptyList(),
-                    textSignals = if (isHindi) {
-                        listOf("Account बंद होने का दावा", "अकारण verification अनुरोध", "अनावश्यक उतावली पैदा करना")
-                    } else {
-                        listOf("Account suspension claim", "Unsolicited verification request", "Creates mild urgency")
-                    },
-                    finalReason = if (isHindi) {
-                        "यह संदेश आपके account को अस्थाई रूप से बंद होने का दावा करता है और verification मांगता है। हालांकि कोई Link नहीं है, लेकिन यह एक संदिग्ध अनुरोध की तरह काम करता है।"
-                    } else {
-                        "This message claims your account is temporarily suspended and requests verification. Although no malicious links are attached, it behaves like an unsolicited verification request."
-                    },
+                    textSignals = listOf("Account suspension claim", "Unsolicited verification request", "Creates mild urgency"),
+                    finalReason = "This message claims your account is temporarily suspended and requests verification. Although no malicious links are attached, it behaves like an unsolicited verification request.",
                     webRiskStatus = "OK",
                     aiStatus = "ok",
-                    scamType = if (isHindi) "संदिग्ध खाता चेतावनी (Suspicious Alert)" else "Suspicious Account Alert",
-                    advice = if (isHindi) {
-                        listOf("अपुष्ट नंबरों पर संवेदनशील जानकारी न भेजें।", "सीधे अपने बैंक या सेवा प्रदाता से संपर्क करके पुष्टि करें।", "संदेश भेजने वाले को ब्लॉक करें।")
-                    } else {
-                        listOf("Do not send sensitive details over unverified numbers.", "Directly contact your service provider to verify.", "Consider blocking the sender.")
-                    },
-                    summary = if (isHindi) {
-                        "बिना किसी अधिकारिक पुष्टि के account विवरण सत्यापित करने वाला संदिग्ध संदेश।"
-                    } else {
-                        "Suspicious account alert asking for unsolicited verification details."
-                    },
+                    scamType = "Suspicious Account Alert",
+                    advice = listOf("Do not send sensitive details over unverified numbers.", "Directly contact your service provider to verify.", "Consider blocking the sender."),
+                    summary = "Suspicious account alert asking for unsolicited verification details.",
                     textVerdict = "Suspicious",
                     urlVerdict = "Safe",
                     phishtankStatus = "OK",
@@ -1793,29 +1780,13 @@ object SecurityAnalysisEngine {
                             urlhausStatus = "MALICIOUS"
                         )
                     ),
-                    textSignals = if (isHindi) {
-                        listOf("अकारण इनाम/cash जीतने का दावा", "उतावली पैदा करना (तुरंत expire होने का दावा)", "अपुष्ट इनाम दावा Link")
-                    } else {
-                        listOf("Unsolicited lottery/cash reward", "Urgency manipulation (expires immediately)", "Unverified prize claim link")
-                    },
-                    finalReason = if (isHindi) {
-                        "एक खतरनाक इनाम घोटाला संदेश जिसमें एक पुख्ता उच्च-जोखिम Phishing URL है। यह संवेदनशील डेटा चोरी करने के लिए नकली इनाम और उतावली के हथकंडे अपनाता है।"
-                    } else {
-                        "A dangerous prize scam message containing a confirmed high-risk phishing URL. It uses urgency tactics and fake cash awards to harvest credentials."
-                    },
+                    textSignals = listOf("Unsolicited lottery/cash reward", "Urgency manipulation (expires immediately)", "Unverified prize claim link"),
+                    finalReason = "A dangerous prize scam message containing a confirmed high-risk phishing URL. It uses urgency tactics and fake cash awards to harvest credentials.",
                     webRiskStatus = "MALICIOUS",
                     aiStatus = "ok",
-                    scamType = if (isHindi) "इनाम / लॉटरी घोटाला (Lottery Scam)" else "Prize / Lottery Scam",
-                    advice = if (isHindi) {
-                        listOf("Link पर बिल्कुल भी click न करें।", "अपनी बैंकिंग या व्यक्तिगत जानकारी कभी साझा न करें।", "इस नंबर को तुरंत ब्लॉक और रिपोर्ट करें।")
-                    } else {
-                        listOf("Do not click the provided link.", "Never share banking or personal credentials.", "Block and report this sender immediately.")
-                    },
-                    summary = if (isHindi) {
-                        "Malicious URL के जरिए संवेदनशील जानकारी चुराने का प्रयास करने वाला उच्च-जोखिम इनाम घोटाला।"
-                    } else {
-                        "High-risk prize scam attempting to steal personal information via a malicious URL."
-                    },
+                    scamType = "Prize / Lottery Scam",
+                    advice = listOf("Do not click the provided link.", "Never share banking or personal credentials.", "Block and report this sender immediately."),
+                    summary = "High-risk prize scam attempting to steal personal information via a malicious URL.",
                     textVerdict = "Danger",
                     urlVerdict = "Danger",
                     phishtankStatus = "MALICIOUS",
@@ -1849,29 +1820,13 @@ object SecurityAnalysisEngine {
                             urlhausStatus = "MALICIOUS"
                         )
                     ),
-                    textSignals = if (isHindi) {
-                        listOf("नकली refund का दावा", "Google Pay ब्रांड की नकल (Impersonation)", "अपुष्ट बाहरी Link")
-                    } else {
-                        listOf("Fake refund claim", "Impersonating Google Pay brand", "Unverified third-party link")
-                    },
-                    finalReason = if (isHindi) {
-                        "यह Google Pay की नकल करने वाला उच्च-जोखिम UPI refund scam है। Link पर जाकर UPI ऑथराइजेशन करने से पैसे मिलने के बजाय तुरंत खाते से कट जाएंगे।"
-                    } else {
-                        "This is a high-risk UPI refund scam impersonating Google Pay. Tapping the link and authorizing on UPI will result in immediate money theft instead of receiving a refund."
-                    },
+                    textSignals = listOf("Fake refund claim", "Impersonating Google Pay brand", "Unverified third-party link"),
+                    finalReason = "This is a high-risk UPI refund scam impersonating Google Pay. Tapping the link and authorizing on UPI will result in immediate money theft instead of receiving a refund.",
                     webRiskStatus = "MALICIOUS",
                     aiStatus = "ok",
-                    scamType = if (isHindi) "नकली यूपीआई रिफंड (UPI Refund Scam)" else "Fake UPI Refund Scam",
-                    advice = if (isHindi) {
-                        listOf("पैसे प्राप्त करने के लिए कभी भी अपना UPI PIN दर्ज न करें।", "Link पर click करने से बचें।", "संदिग्ध लेनदेन की शिकायत अपने बैंक से करें।")
-                    } else {
-                        listOf("Never enter your UPI PIN to receive money.", "Avoid clicking unverified transaction links.", "Report suspicious requests to your banking app.")
-                    },
-                    summary = if (isHindi) {
-                        "अनधिकृत UPI ट्रांसफर शुरू करने के लिए Google Pay की नकल करने वाला उच्च-जोखिम वित्तीय धोखाधड़ी।"
-                    } else {
-                        "High-risk financial fraud impersonating Google Pay to initiate unauthorized UPI transfers."
-                    },
+                    scamType = "Fake UPI Refund Scam",
+                    advice = listOf("Never enter your UPI PIN to receive money.", "Avoid clicking unverified transaction links.", "Report suspicious requests to your banking app."),
+                    summary = "High-risk financial fraud impersonating Google Pay to initiate unauthorized UPI transfers.",
                     textVerdict = "Danger",
                     urlVerdict = "Danger",
                     phishtankStatus = "MALICIOUS",
@@ -1905,29 +1860,13 @@ object SecurityAnalysisEngine {
                             urlhausStatus = "MALICIOUS"
                         )
                     ),
-                    textSignals = if (isHindi) {
-                        listOf("SBI बैंक की नकल (Impersonation)", "डेबिट कार्ड बंद होने की झूठी चेतावनी", "संवेदनशील पासवर्ड/OTP चोरी करने के लिए नकली Login Link")
-                    } else {
-                        listOf("Impersonating SBI Bank", "Urgent request to prevent debit card suspension", "Credential harvesting login link")
-                    },
-                    finalReason = if (isHindi) {
-                        "SBI खाताधारकों को लक्षित करने वाला एक गंभीर बैंकिंग Phishing घोटाला। दिया गया URL एक नकली लॉगिन पोर्टल पर ले जाता है जिसे पासवर्ड और OTP चुराने के लिए बनाया गया है।"
-                    } else {
-                        "A critical banking phishing scam targeting SBI cardholders. The attached URL leads to a fake replica login portal designed to steal secure banking passwords and OTPs."
-                    },
+                    textSignals = listOf("Impersonating SBI Bank", "Urgent request to prevent debit card suspension", "Credential harvesting login link"),
+                    finalReason = "A critical banking phishing scam targeting SBI cardholders. The attached URL leads to a fake replica login portal designed to steal secure banking passwords and OTPs.",
                     webRiskStatus = "MALICIOUS",
                     aiStatus = "ok",
-                    scamType = if (isHindi) "बैंक धोखाधड़ी / फ़िशिंग (Bank Phishing)" else "Fake Bank / Phishing Scam",
-                    advice = if (isHindi) {
-                        listOf("अपुष्ट लिंक के माध्यम से कभी भी नेट बैंकिंग लॉग इन न करें।", "बैंक कभी भी कार्ड ब्लॉक करने की धमकी देकर ऑनलाइन प्रोफाइल अपडेट नहीं मांगते।", "इस संदेश को ब्लॉक करें।")
-                    } else {
-                        listOf("Never log in to online banking via unverified text links.", "Banks never demand profile updates to prevent immediate block.", "Block this sender immediately.")
-                    },
-                    summary = if (isHindi) {
-                        "कार्ड और क्रेडेंशियल चोरी का प्रयास करने वाला गंभीर बैंकिंग Phishing संदेश।"
-                    } else {
-                        "Critical banking phishing message attempting card and credential theft."
-                    },
+                    scamType = "Fake Bank / Phishing Scam",
+                    advice = listOf("Never log in to online banking via unverified text links.", "Banks never demand profile updates to prevent immediate block.", "Block this sender immediately."),
+                    summary = "Critical banking phishing message attempting card and credential theft.",
                     textVerdict = "Danger",
                     urlVerdict = "Danger",
                     phishtankStatus = "MALICIOUS",
@@ -1961,29 +1900,13 @@ object SecurityAnalysisEngine {
                             urlhausStatus = "MALICIOUS"
                         )
                     ),
-                    textSignals = if (isHindi) {
-                        listOf("अचानक बड़ी राशि का इनाम जीतने का दावा", "झूठी समय सीमा (आज रात से पहले)", "संवेदनशील डेटा चुराने वाला खतरनाक Link")
-                    } else {
-                        listOf("Unexpected high-value cash prize reward", "Urgency trick (before tonight limit)", "Malicious credential harvesting link")
-                    },
-                    finalReason = if (isHindi) {
-                        "यह एक पुख्ता लॉटरी/इनाम घोटाला है। घोटालेबाज भारी नकद इनाम का लालच देते हैं और लोगों को जल्दबाजी में फंसाते हैं ताकि वे सुरक्षा का ध्यान न रखें।"
-                    } else {
-                        "This is a confirmed lottery/prize scam. Scammers lure users with high cash prizes and use urgency to bypass safety thinking. The URL harvests user information."
-                    },
+                    textSignals = listOf("Unexpected high-value cash prize reward", "Urgency trick (before tonight limit)", "Malicious credential harvesting link"),
+                    finalReason = "This is a confirmed lottery/prize scam. Scammers lure users with high cash prizes and use urgency to bypass safety thinking. The URL harvests user information.",
                     webRiskStatus = "MALICIOUS",
                     aiStatus = "ok",
-                    scamType = if (isHindi) "लॉटरी / पुरस्कार घोटाला (Lottery Scam)" else "Prize / Lottery Scam",
-                    advice = if (isHindi) {
-                        listOf("किसी भी अज्ञात लॉटरी या नकद पुरस्कारों पर विश्वास न करें।", "लिंक पर क्लिक न करें या कोई व्यक्तिगत विवरण न भरें।", "धोखाधड़ी वाली वेबसाइटों को ब्लॉक और रिपोर्ट करें।")
-                    } else {
-                        listOf("Do not believe unsolicited cash awards or lottery announcements.", "Never open suspicious reward URLs.", "Report and block fraudulent senders.")
-                    },
-                    summary = if (isHindi) {
-                        "पैसे का दावा करने के लिए phishing link पर click करने को कहने वाला उच्च-जोखिम लॉटरी घोटाला।"
-                    } else {
-                        "High-risk lottery scam asking user to click a phishing link to claim money."
-                    },
+                    scamType = "Prize / Lottery Scam",
+                    advice = listOf("Do not believe unsolicited cash awards or lottery announcements.", "Never open suspicious reward URLs.", "Report and block fraudulent senders."),
+                    summary = "High-risk lottery scam asking user to click a phishing link to claim money.",
                     textVerdict = "Danger",
                     urlVerdict = "Danger",
                     phishtankStatus = "MALICIOUS",
@@ -2000,29 +1923,13 @@ object SecurityAnalysisEngine {
                     originalMessage = normalized,
                     normalizedMessage = normalized,
                     urlsFound = emptyList(),
-                    textSignals = if (isHindi) {
-                        listOf("6-digit OTP कोड की मांग करना", "अकारण पासवर्ड रीसेट चेतावनी", "Helpdesk अधिकारी से शेयर करने की मांग")
-                    } else {
-                        listOf("Soliciting 6-digit OTP code", "Unsolicited password reset alert", "Executive sharing request (highly suspicious)")
-                    },
-                    finalReason = if (isHindi) {
-                        "यह एक गंभीर OTP चोरी का घोटाला है। वैध कंपनियां कभी भी कॉल या संदेश पर OTP या पासवर्ड रीसेट कोड नहीं मांगती हैं। कोड साझा करने पर आपका account हैक हो सकता है।"
-                    } else {
-                        "This is a critical OTP harvesting scam. Legitimate companies never request OTP or reset codes via call or text sharing. Providing the code will result in account takeover."
-                    },
+                    textSignals = listOf("Soliciting 6-digit OTP code", "Unsolicited password reset alert", "Executive sharing request (highly suspicious)"),
+                    finalReason = "This is a critical OTP harvesting scam. Legitimate companies never request OTP or reset codes via call or text sharing. Providing the code will result in account takeover.",
                     webRiskStatus = "OK",
                     aiStatus = "ok",
-                    scamType = if (isHindi) "ओटीपी घोटाला (OTP Theft)" else "OTP / Credential Scam",
-                    advice = if (isHindi) {
-                        listOf("किसी भी परिस्थिति में अपना OTP किसी से साझा न करें।", "बैंक या कंपनी के प्रतिनिधि कभी OTP नहीं मांगते।", "टू-फैक्टर ऑथेंटिकेशन सक्षम रखें।")
-                    } else {
-                        listOf("Never share your OTP with anyone under any circumstances.", "Official support executives will never ask for OTP codes.", "Enable active two-factor security profiles.")
-                    },
-                    summary = if (isHindi) {
-                        "अनधिकृत खाता हैकिंग का प्रयास करने वाला गंभीर OTP घोटाला।"
-                    } else {
-                        "Critical OTP scam attempting unauthorized account takeovers."
-                    },
+                    scamType = "OTP / Credential Scam",
+                    advice = listOf("Never share your OTP with anyone under any circumstances.", "Official support executives will never ask for OTP codes.", "Enable active two-factor security profiles."),
+                    summary = "Critical OTP scam attempting unauthorized account takeovers.",
                     textVerdict = "Danger",
                     urlVerdict = "Safe",
                     phishtankStatus = "OK",
@@ -2031,7 +1938,10 @@ object SecurityAnalysisEngine {
                 )
             }
             else -> null
-        }
+        } ?: return null
+
+        val (s, sig, adv) = sanitizeAndEnforceContent(rawResult.summary, rawResult.textSignals, rawResult.advice, rawResult.verdict, normalized)
+        return rawResult.copy(summary = s, finalReason = s, textSignals = sig, advice = adv)
     }
 
     private suspend fun executeGeminiScan(systemInstruction: String, userPrompt: String): JSONObject {
@@ -2101,44 +2011,4 @@ object SecurityAnalysisEngine {
         )
     }
 
-    private fun translateSignalToHindi(signal: String): String {
-        val lower = signal.lowercase()
-        return when {
-            lower.contains("bank") && lower.contains("impersonat") -> "बैंक इम्परसोनेशन (Impersonation) धोखाधड़ी"
-            lower.contains("otp") -> "OTP स्कैम या कोड अनुरोध"
-            lower.contains("kyc") -> "नकली KYC अनुरोध"
-            lower.contains("parcel") || lower.contains("courier") || lower.contains("delivery") -> "पार्सल / कोरियर डिलीवरी स्कैम"
-            lower.contains("lottery") || lower.contains("prize") || lower.contains("reward") -> "लॉटरी या पुरस्कार प्रलोभन"
-            lower.contains("investment") || lower.contains("crypto") || lower.contains("trading") -> "इन्वेस्टमेंट / ट्रेडिंग स्कैम"
-            lower.contains("credential") || lower.contains("password") || lower.contains("harvest") -> "क्रेडेंशियल / पासवर्ड हार्वेस्टिंग"
-            lower.contains("remote") || lower.contains("anydesk") || lower.contains("teamviewer") -> "रिमोट एक्सेस ऐप (AnyDesk आदि) स्कैम"
-            lower.contains("urgency") || lower.contains("urgent") -> "तात्कालिकता (Urgency) और दबाव का tactic"
-            lower.contains("suspicious domain") || lower.contains("malicious url") -> "संदिग्ध URL या डोमेन"
-            lower.contains("government") -> "सरकारी एजेंसी की फर्जी नकल"
-            else -> signal
-        }
-    }
-
-    private fun translateScamCategoryToHindi(category: String): String {
-        val lower = category.lowercase()
-        return when {
-            lower.contains("otp") -> "OTP घोटाला (OTP Scam)"
-            lower.contains("bank") -> "बैंक इम्परसोनेशन (Bank Impersonation)"
-            lower.contains("kyc") -> "नकली KYC (Fake KYC)"
-            lower.contains("parcel") || lower.contains("courier") -> "पार्सल स्कैम (Parcel Scam)"
-            lower.contains("lottery") || lower.contains("prize") -> "लॉटरी / इनाम घोटाला (Lottery Scam)"
-            lower.contains("investment") -> "इन्वेस्टमेंट स्कैम (Investment Scam)"
-            lower.contains("credential") -> "क्रेडेंशियल फ़िशिंग (Credential Harvesting)"
-            lower.contains("support") -> "नकली कस्टमर सपोर्ट (Fake Support)"
-            lower.contains("upi") -> "यूपीआई फ्रॉड (UPI Fraud)"
-            lower.contains("refund") -> "रिफंड स्कैम (Refund Scam)"
-            lower.contains("government") -> "सरकारी प्रतिरूपण (Government Impersonation)"
-            lower.contains("telecom") -> "टेलीकॉम इम्परसोनेशन (Telecom Scam)"
-            lower.contains("brand") -> "ब्रांड इम्परसोनेशन (Brand Impersonation)"
-            lower.contains("social engineering") -> "सोशल इंजीनियरिंग (Social Engineering)"
-            lower.contains("safe") || lower.contains("legitimate") -> "वैध संदेश (Legitimate Message)"
-            lower.contains("unable") -> "अनिर्णित (Unable to Determine)"
-            else -> category
-        }
-    }
 }

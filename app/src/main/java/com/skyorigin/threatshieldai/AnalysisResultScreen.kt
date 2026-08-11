@@ -61,7 +61,7 @@ fun AnalysisResultScreen(
 
     val verdictInfo = VerdictMapper.getVerdictForScore(analysis.score)
     val riskColor = verdictInfo.color
-    val riskTitle = verdictInfo.getTitle(isHindi)
+    val riskTitle = verdictInfo.titleEn
 
     val isDanger = analysis.score >= 70
     val isSuspicious = analysis.score in 40..69
@@ -103,7 +103,7 @@ fun AnalysisResultScreen(
                 val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
                 context.startActivity(intent)
             } catch (e: Exception) {
-                Toast.makeText(context, if (isHindi) "URL खोलने में असमर्थ" else "Unable to open URL", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Unable to open URL", Toast.LENGTH_SHORT).show()
             }
         } else {
             urlToOpen = url
@@ -407,7 +407,7 @@ fun AnalysisResultScreen(
                             
                             Spacer(modifier = Modifier.height(4.dp))
                             
-                            val verdictSentence = verdictInfo.getSubtitle(isHindi)
+                            val verdictSentence = verdictInfo.subtitleEn
                             
                             Text(
                                 text = verdictSentence,
@@ -488,7 +488,7 @@ fun AnalysisResultScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = if (isHindi) "AI सुरक्षा सारांश" else "AI Security Summary",
+                                    text = "AI Security Summary",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = primaryBlue
@@ -540,7 +540,7 @@ fun AnalysisResultScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (isHindi) "लिंक सुरक्षा" else "Link Security",
+                                text = "Link Security",
                                 color = textPrimary,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Black
@@ -564,20 +564,20 @@ fun AnalysisResultScreen(
 
                             val resultState = when {
                                 isFailed -> WebRiskUiResult(
-                                    label = if (isHindi) "जाँच अनुपलब्ध" else "CHECK UNAVAILABLE",
-                                    subtitle = if (isHindi) "Google Web Risk जांच इस URL के लिए उपलब्ध नहीं है।" else "Google Web Risk check unavailable for this URL.",
+                                    label = "CHECK UNAVAILABLE",
+                                    subtitle = "Google Web Risk check unavailable for this URL.",
                                     color = warningOrange,
                                     icon = Icons.Rounded.GppMaybe
                                 )
                                 isThreat -> WebRiskUiResult(
-                                    label = if (isHindi) "खतरा मिला" else "THREAT FOUND",
-                                    subtitle = urlStatus.threatType?.takeIf { it.isNotEmpty() } ?: (if (isHindi) "Google Web Risk द्वारा खतरा पाया गया" else "Threat detected by Google Web Risk"),
+                                    label = "THREAT FOUND",
+                                    subtitle = urlStatus.threatType?.takeIf { it.isNotEmpty() } ?: "Threat detected by Google Web Risk",
                                     color = dangerRed,
                                     icon = Icons.Rounded.GppBad
                                 )
                                 else -> WebRiskUiResult(
-                                    label = if (isHindi) "कोई ज्ञात खतरा नहीं" else "NO KNOWN THREAT FOUND",
-                                    subtitle = if (isHindi) "Google Web Risk को इस URL पर कोई ज्ञात खतरा नहीं मिला।" else "Google Web Risk found no known threat for this URL.",
+                                    label = "NO KNOWN THREAT FOUND",
+                                    subtitle = "Google Web Risk found no known threat for this URL.",
                                     color = safeGreen,
                                     icon = Icons.Rounded.GppGood
                                 )
@@ -705,7 +705,7 @@ fun AnalysisResultScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isHindi) "यह परिणाम क्यों?" else "Why This Result?",
+                            text = "Why This Result?",
                             color = textPrimary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Black
@@ -730,60 +730,60 @@ fun AnalysisResultScreen(
                             val r1 = if (analysis.links.isNotEmpty()) {
                                 val hasMalicious = parsedUrls.any { it.riskLevel.uppercase() in listOf("MALICIOUS", "DANGER") }
                                 if (hasMalicious) {
-                                    if (isHindi) "✕ ज्ञात खतरनाक लिंक पाया गया" else "✕ Known dangerous Link detected"
+                                    "✕ Known dangerous Link detected"
                                 } else {
-                                    if (isHindi) "✕ अत्यधिक संदिग्ध लिंक पाया गया" else "✕ Highly suspicious Link detected"
+                                    "✕ Highly suspicious Link detected"
                                 }
                             } else {
                                 val cleanType = analysis.scamType.lowercase()
                                 if (cleanType.contains("bank") || cleanType.contains("impersonat")) {
-                                    if (isHindi) "✕ गंभीर बैंक प्रतिरूपण का प्रयास पाया गया" else "✕ Severe banking impersonation attempt detected"
+                                    "✕ Severe banking impersonation attempt detected"
                                 } else if (cleanType.contains("otp") || cleanType.contains("credential") || cleanType.contains("chori") || cleanType.contains("चोरी")) {
-                                    if (isHindi) "✕ उच्च जोखिम वाले क्रेडेंशियल/ओटीपी चोरी का पैटर्न मिला" else "✕ High-risk credential/OTP theft pattern found"
+                                    "✕ High-risk credential/OTP theft pattern found"
                                 } else {
-                                    if (isHindi) "✕ जोखिम भरे अनधिकृत अनुरोध पाए गए" else "✕ Risky unauthorized requests detected"
+                                    "✕ Risky unauthorized requests detected"
                                 }
                             }
-                            val r2 = if (isHindi) "✕ संदेश में मजबूत घोटाला व्यवहार पाया गया" else "✕ Strong scam behavior found in the message"
-                            val r3 = if (isHindi) "✕ संदेश एक जोखिम भरे या संवेदनशील कार्रवाई का प्रयास करता है" else "✕ Message attempts a risky or sensitive action"
+                            val r2 = "✕ Strong scam behavior found in the message"
+                            val r3 = "✕ Message attempts a risky or sensitive action"
                             listOf(r1, r2, r3)
                         }
                         isWarning || isSuspicious -> {
-                            val r1 = if (isHindi) "• कुछ संदिग्ध व्यवहार का पता चला है" else "• Some suspicious behavior detected"
+                            val r1 = "• Some suspicious behavior detected"
                             val r2 = if (analysis.links.isNotEmpty()) {
                                 val hasMalicious = parsedUrls.any { it.riskLevel.uppercase() in listOf("MALICIOUS", "DANGER") }
                                 val hasUnverified = parsedUrls.any { it.riskLevel.uppercase() in listOf("UNVERIFIED", "UNKNOWN") }
                                 if (hasMalicious) {
-                                    if (isHindi) "• खतरनाक या ब्लैकलिस्टेड लिंक पाया गया" else "• Dangerous or blacklisted Link found"
+                                    "• Dangerous or blacklisted Link found"
                                 } else if (hasUnverified) {
-                                    if (isHindi) "• सत्यापित न होने वाला लिंक, अत्यधिक सावधानी की आवश्यकता" else "• Unverified link requiring extreme caution"
+                                    "• Unverified link requiring extreme caution"
                                 } else {
-                                    if (isHindi) "• क्लिक करने से पहले लिंक के सत्यापन की आवश्यकता है" else "• Link requires verification before clicking"
+                                    "• Link requires verification before clicking"
                                 }
                             } else {
-                                if (isHindi) "• प्रेषक या अनुरोध को पूरी तरह से सत्यापित नहीं किया जा सका" else "• Sender or request could not be fully verified"
+                                "• Sender or request could not be fully verified"
                             }
-                            val r3 = if (isHindi) "• कार्रवाई करने से पहले सावधानी बरतने की सलाह दी जाती है" else "• Caution is recommended before taking action"
+                            val r3 = "• Caution is recommended before taking action"
                             listOf(r1, r2, r3)
                         }
                         isUnableToDetermine -> {
-                            val r1 = if (isHindi) "• पूर्ण विश्लेषण के लिए संदेश का संदर्भ अपर्याप्त है" else "• Insufficient message context for full analysis"
+                            val r1 = "• Insufficient message context for full analysis"
                             val r2 = if (analysis.links.isNotEmpty()) {
-                                if (isHindi) "• लिंक की प्रतिष्ठा असत्यापित या ऑफ़लाइन है" else "• Link reputation is unverified or offline"
+                                "• Link reputation is unverified or offline"
                             } else {
-                                if (isHindi) "• सत्यापित करने के लिए कोई लिंक या संपर्क विवरण नहीं" else "• No links or contact details to verify"
+                                "• No links or contact details to verify"
                             }
-                            val r3 = if (isHindi) "• अवांछित संदेशों के लिए सावधानी बरतने की सलाह दी जाती है" else "• Caution is advised for unsolicited messages"
+                            val r3 = "• Caution is advised for unsolicited messages"
                             listOf(r1, r2, r3)
                         }
                         else -> { // SAFE
-                            val r1 = if (isHindi) "✓ कोई मजबूत घोटाला पैटर्न नहीं पाया गया" else "✓ No strong scam behavior found"
+                            val r1 = "✓ No strong scam behavior found"
                             val r2 = if (analysis.links.isNotEmpty()) {
-                                if (isHindi) "✓ कोई ज्ञात लिंक खतरा नहीं पाया गया" else "✓ No known Link threat detected"
+                                "✓ No known Link threat detected"
                             } else {
-                                if (isHindi) "✓ संदेश में कोई लिंक नहीं पाया गया" else "✓ No Link detected in the message"
+                                "✓ No Link detected in the message"
                             }
-                            val r3 = if (isHindi) "✓ संदेश सूचनात्मक प्रतीत होता है, संवेदनशील कार्रवाई का अनुरोध नहीं है" else "✓ Message appears informational, not requesting sensitive action"
+                            val r3 = "✓ Message appears informational, not requesting sensitive action"
                             listOf(r1, r2, r3)
                         }
                     }
@@ -867,7 +867,7 @@ fun AnalysisResultScreen(
                         }
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isHindi) "सुझाए गए कदम" else "Recommended Actions",
+                            text = "Recommended Actions",
                             color = textPrimary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Black
@@ -1066,23 +1066,14 @@ fun AnalysisResultScreen(
 }
 
 @Composable
-fun ProviderCell(name: String, verdict: String, status: String, isHindi: Boolean, modifier: Modifier = Modifier) {
+fun ProviderCell(name: String, verdict: String, status: String, isHindi: Boolean = false, modifier: Modifier = Modifier) {
     val isDark = LocalIsDark.current
     
-    val localizedName = if (isHindi) {
-        when (name) {
-            "Threat Database", "Web Risk" -> "थ्रेट डेटाबेस"
-            "Phishing Check", "PhishTank" -> "फ़िशिंग जाँच"
-            "Malware Check", "URLhaus" -> "मालवेयर जाँच"
-            else -> name
-        }
-    } else {
-        when (name) {
-            "Web Risk" -> "Threat Database"
-            "PhishTank" -> "Phishing Check"
-            "URLhaus" -> "Malware Check"
-            else -> name
-        }
+    val localizedName = when (name) {
+        "Web Risk" -> "Threat Database"
+        "PhishTank" -> "Phishing Check"
+        "URLhaus" -> "Malware Check"
+        else -> name
     }
 
     val isMissingKey = status.uppercase() in listOf("MISSING_KEY", "NOT_CONFIGURED", "UNAUTHORIZED")
@@ -1096,21 +1087,11 @@ fun ProviderCell(name: String, verdict: String, status: String, isHindi: Boolean
     val isMalicious = verdict.uppercase() in listOf("MALICIOUS", "DANGER", "PHISHING", "MALWARE")
 
     val displayLabel = when {
-        isSkipped -> {
-            if (isHindi) "छोड़ा गया (गोपनीयता)" else "Skipped (Privacy)"
-        }
-        isMissingKey -> {
-            if (isHindi) "की कॉन्फ़िगर नहीं" else "Key Not Configured"
-        }
-        isFailed -> {
-            if (isHindi) "डेटाबेस उपलब्ध नहीं है" else "Database Unavailable"
-        }
-        isMalicious -> {
-            if (isHindi) "खतरा" else "Threat"
-        }
-        else -> {
-            if (isHindi) "कोई ज्ञात खतरा नहीं पाया गया" else "No Known Threat Found"
-        }
+        isSkipped -> "Skipped (Privacy)"
+        isMissingKey -> "Key Not Configured"
+        isFailed -> "Database Unavailable"
+        isMalicious -> "Threat"
+        else -> "No Known Threat Found"
     }
     
     val displayColor = when {
@@ -1151,92 +1132,40 @@ fun ProviderCell(name: String, verdict: String, status: String, isHindi: Boolean
     }
 }
 
-fun mapSignalToReason(signal: String, isHindi: Boolean): String {
+fun mapSignalToReason(signal: String, isHindi: Boolean = false): String {
     val clean = signal.trim().lowercase()
     if (clean.isBlank()) return ""
     
-    if (isHindi) {
-        return when {
-            clean.contains("phishing url") || clean.contains("phishing link") -> "इस message में एक phishing URL मिला है।"
-            clean.contains("malware url") || clean.contains("malware link") -> "इस message में एक malware URL मिला है।"
-            clean.contains("social engineering url") || clean.contains("social engineering link") -> "इस message में एक social engineering URL मिला है।"
-            clean.contains("malicious url") || clean.contains("malicious link") -> "इस message में एक malicious URL मिला है।"
-            clean.contains("suspicious link") || clean.contains("suspicious url") -> "इस message में एक suspicious link मिला है।"
-            clean.contains("unverified external link") || clean.contains("unverified link") -> "Message में unverified external links शामिल हैं।"
-            clean.contains("no malicious url") || clean.contains("no known malicious link") || clean.contains("no scam pattern") || clean.contains("no strong scam") || clean.contains("no malicious") -> "कोई malicious URL या scam indicators नहीं मिले।"
-            clean.contains("urgent action") || clean.contains("urgent request") || clean.contains("urgently asks") || clean.contains("urgency") || clean.contains("urgent payment") || clean.contains("urgently") -> "आपको जल्दी action लेने के लिए दबाव डाला जा रहा है।"
-            clean.contains("request for otp") || clean.contains("otp") || clean.contains("pin") || clean.contains("password") -> "OTP या PIN मांगा जा रहा है, जो highly risky हो सकता है।"
-            clean.contains("bank impersonation") || clean.contains("non-official bank") -> "Bank impersonation और non-official domain की कोशिश पाई गई है।"
-            clean.contains("government impersonation") -> "Government department का fake impersonation मिला है।"
-            clean.contains("high-risk scam") -> "Message text में high-risk scam indicators मिले हैं।"
-            clean.contains("significant threat") -> "Analysis engine द्वारा गंभीर खतरा (Significant threat) पाया गया है।"
-            clean.contains("potential threat") -> "Potential threat signals पाए गए हैं।"
-            clean.contains("unverified url requires") -> "Unverified URL मिला है, कृपया सावधानी बरतें।"
-            clean.contains("url reputation") -> "URL reputation उपलब्ध नहीं है।"
-            clean.contains("unsolicited promotional") -> "Unsolicited promotional sender मिला है।"
-            clean.contains("weak or partial") -> "हल्के या आंशिक (Weak or partial) scam indicators मिले हैं।"
-            clean.contains("scan incomplete") -> "Scan incomplete है, Security API services offline हैं।"
-            clean.contains("unusual message") -> "असामान्य (Unusual) message pattern पाया गया।"
-            // Default keyword fallbacks
-            clean.contains("win") || clean.contains("won") || clean.contains("winner") || clean.contains("prize") || 
-            clean.contains("$") || clean.contains("reward") || clean.contains("cash") || clean.contains("money") ||
-            clean.contains("crore") || clean.contains("lakh") || clean.contains("lottery") || clean.contains("इनाम") -> {
-                "इनाम या लॉटरी का अनपेक्षित दावा (Unexpected cash prize claim)"
-            }
-            clean.contains("click") || clean.contains("open") || clean.contains("visit") || clean.contains("link") || 
-            clean.contains("url") || clean.contains("website") || clean.contains("http") -> {
-                "संदिग्ध Link खोलने का अनुरोध"
-            }
-            clean.contains("urgent") || clean.contains("urgency") || clean.contains("now") || clean.contains("immediately") || 
-            clean.contains("expire") || clean.contains("blocked") || clean.contains("suspend") || clean.contains("त्वरित") -> {
-                "दबाव या तात्कालिकता (Urgency) पैदा करना"
-            }
-            clean.contains("verify") || clean.contains("verification") || clean.contains("kyc") || clean.contains("update") || 
-            clean.contains("satyapan") || clean.contains("सत्यापन") -> {
-                "खाता सत्यापन (Verification) का अनुरोध"
-            }
-            clean.contains("otp") || clean.contains("pin") || clean.contains("password") || clean.contains("credential") || 
-            clean.contains("private") || clean.contains("personal") || clean.contains("info") || clean.contains("card") || 
-            clean.contains("bank") || clean.contains("finance") || clean.contains("credit") || clean.contains("cvv") -> {
-                "संवेदनशील या निजी जानकारी मांगना"
-            }
-            clean.contains("claim") || clean.contains("redeem") || clean.contains("offer") || clean.contains("gift") -> {
-                "ऑफ़र या पुरस्कार का दावा करने के लिए प्रोत्साहन"
-            }
-            else -> sanitizeText(signal)
+    val words = clean.split("\\s+".toRegex())
+    if (words.size >= 4) {
+        return sanitizeText(signal)
+    }
+    return when {
+        clean.contains("win") || clean.contains("won") || clean.contains("winner") || clean.contains("prize") || 
+        clean.contains("$") || clean.contains("reward") || clean.contains("cash") || clean.contains("money") ||
+        clean.contains("crore") || clean.contains("lakh") || clean.contains("lottery") -> {
+            "Unexpected cash prize claim"
         }
-    } else {
-        val words = clean.split("\\s+".toRegex())
-        if (words.size >= 4) {
-            return sanitizeText(signal)
+        clean.contains("click") || clean.contains("open") || clean.contains("visit") || clean.contains("link") || 
+        clean.contains("url") || clean.contains("website") || clean.contains("http") -> {
+            "Asks you to open a link"
         }
-        return when {
-            clean.contains("win") || clean.contains("won") || clean.contains("winner") || clean.contains("prize") || 
-            clean.contains("$") || clean.contains("reward") || clean.contains("cash") || clean.contains("money") ||
-            clean.contains("crore") || clean.contains("lakh") || clean.contains("lottery") -> {
-                "Unexpected cash prize claim"
-            }
-            clean.contains("click") || clean.contains("open") || clean.contains("visit") || clean.contains("link") || 
-            clean.contains("url") || clean.contains("website") || clean.contains("http") -> {
-                "Asks you to open a link"
-            }
-            clean.contains("urgent") || clean.contains("urgency") || clean.contains("now") || clean.contains("immediately") || 
-            clean.contains("expire") || clean.contains("blocked") || clean.contains("suspend") -> {
-                "Creates urgency or pressure"
-            }
-            clean.contains("verify") || clean.contains("verification") || clean.contains("kyc") || clean.contains("update") -> {
-                "Requests account verification"
-            }
-            clean.contains("otp") || clean.contains("pin") || clean.contains("password") || clean.contains("credential") || 
-            clean.contains("private") || clean.contains("personal") || clean.contains("info") || clean.contains("card") || 
-            clean.contains("bank") || clean.contains("finance") || clean.contains("credit") || clean.contains("cvv") -> {
-                "Requests sensitive or private information"
-            }
-            clean.contains("claim") || clean.contains("redeem") || clean.contains("offer") || clean.contains("gift") -> {
-                "Encourages you to claim a reward"
-            }
-            else -> sanitizeText(signal)
+        clean.contains("urgent") || clean.contains("urgency") || clean.contains("now") || clean.contains("immediately") || 
+        clean.contains("expire") || clean.contains("blocked") || clean.contains("suspend") -> {
+            "Creates urgency or pressure"
         }
+        clean.contains("verify") || clean.contains("verification") || clean.contains("kyc") || clean.contains("update") -> {
+            "Requests account verification"
+        }
+        clean.contains("otp") || clean.contains("pin") || clean.contains("password") || clean.contains("credential") || 
+        clean.contains("private") || clean.contains("personal") || clean.contains("info") || clean.contains("card") || 
+        clean.contains("bank") || clean.contains("finance") || clean.contains("credit") || clean.contains("cvv") -> {
+            "Requests sensitive or private information"
+        }
+        clean.contains("claim") || clean.contains("redeem") || clean.contains("offer") || clean.contains("gift") -> {
+            "Encourages you to claim a reward"
+        }
+        else -> sanitizeText(signal)
     }
 }
 

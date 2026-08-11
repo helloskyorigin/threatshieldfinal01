@@ -103,34 +103,32 @@ fun HomeScreen(
         }
     }
 
-    val isHindi = false
-
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     
     val safeAction = QuickAction(
-        label = if (isHindi) "Safe" else "Safe", 
+        label = "Safe", 
         sampleText = "Hi, the meeting has been moved to 3 PM today. Please confirm if the new time works for you. See you at the office.", 
         icon = Icons.Rounded.CheckCircle, 
         color = Color(0xFF10B981)
     )
     val suspiciousAction = QuickAction(
-        label = if (isHindi) "Suspicious" else "Suspicious", 
+        label = "Suspicious", 
         sampleText = "Hi, we found an issue with your account. Please contact our support team soon to confirm your details and avoid disruption.", 
         icon = Icons.Rounded.Warning, 
         color = Color(0xFFF59E0B)
     )
     val dangerAction = QuickAction(
-        label = if (isHindi) "Danger" else "Danger", 
+        label = "Danger", 
         sampleText = "Urgent: Your bank account will be blocked today. Verify your OTP and banking details immediately using this link: http://claim-prize-now.net", 
         icon = Icons.Rounded.Error, 
         color = Color(0xFFEF4444)
     )
 
     val templateChips = listOf(
-        QuickAction(if (isHindi) "UPI Scam" else "UPI Scam", "You have received a pending refund request of ₹4,999 from Google Pay. Click here to claim your money back instantly: https://gpay-refund-portal.in", Icons.Rounded.QrCodeScanner, Color(0xFF10B981)),
-        QuickAction(if (isHindi) "Bank Scam" else "Bank Scam", "Update your secure banking profile to avoid suspension of your debit card. Click here: http://sbi-secure-update.net/login", Icons.Rounded.AccountBalance, Color(0xFF3B82F6)),
-        QuickAction(if (isHindi) "Lottery Scam" else "Lottery Scam", "Congratulations! You won ₹50,000 Cash Prize. Click here to claim: https://threat-shield-scam-reward.net/claim before tonight.", Icons.Rounded.CardGiftcard, Color(0xFFEF4444)),
-        QuickAction(if (isHindi) "OTP Scam" else "OTP Scam", "Alert: A password reset request has been received. Please share the 6-digit OTP code with our helpdesk executive to verify.", Icons.Rounded.VpnKey, Color(0xFFF59E0B))
+        QuickAction("UPI Scam", "You have received a pending refund request of ₹4,999 from Google Pay. Click here to claim your money back instantly: https://gpay-refund-portal.in", Icons.Rounded.QrCodeScanner, Color(0xFF10B981)),
+        QuickAction("Bank Scam", "Update your secure banking profile to avoid suspension of your debit card. Click here: http://sbi-secure-update.net/login", Icons.Rounded.AccountBalance, Color(0xFF3B82F6)),
+        QuickAction("Lottery Scam", "Congratulations! You won ₹50,000 Cash Prize. Click here to claim: https://threat-shield-scam-reward.net/claim before tonight.", Icons.Rounded.CardGiftcard, Color(0xFFEF4444)),
+        QuickAction("OTP Scam", "Alert: A password reset request has been received. Please share the 6-digit OTP code with our helpdesk executive to verify.", Icons.Rounded.VpnKey, Color(0xFFF59E0B))
     )
 
     Scaffold(
@@ -210,7 +208,7 @@ fun HomeScreen(
                             color = textPrimary
                         )
                         Text(
-                            text = if (isHindi) "Scams से सुरक्षा चालू है।" else "Your device is being monitored for scams.",
+                            text = "Your device is being monitored for scams.",
                             fontSize = 13.sp,
                             color = textSecondary
                         )
@@ -237,7 +235,7 @@ fun HomeScreen(
                         color = textPrimary
                     )
                     Text(
-                        text = if (isHindi) "किसी suspicious message को यहां paste करके check करें।" else "SMS, WhatsApp, Email, or Social Media",
+                        text = "SMS, WhatsApp, Email, or Social Media",
                         fontSize = 12.sp,
                         color = textSecondary,
                         modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
@@ -276,7 +274,7 @@ fun HomeScreen(
                         
                         if (inputText.isEmpty()) {
                             Text(
-                                text = if (isHindi) "यहाँ message paste करें..." else "Paste message here...",
+                                text = "Paste message here...",
                                 color = textSecondary.copy(alpha = 0.6f),
                                 fontSize = 15.sp
                             )
@@ -295,7 +293,7 @@ fun HomeScreen(
                         val meaningfulLength = inputText.trim().length
                         if (meaningfulLength < 15) {
                             Text(
-                                text = if (isHindi) "Analysis के लिए कम से कम 15 characters लिखें।" else "Enter at least 15 characters to analyze.",
+                                text = "Enter at least 15 characters to analyze.",
                                 color = if (inputText.isNotBlank()) Color(0xFFEF4444) else textSecondary.copy(alpha = 0.8f),
                                 fontSize = 12.sp,
                                 modifier = Modifier.weight(1f)
@@ -354,9 +352,9 @@ fun HomeScreen(
                                         focusManager.clearFocus()
                                         
                                         if (!NetworkUtils.isInternetAvailable(context)) {
-                                            isAnalyzing = false
-                                            viewModel.showNoInternetDialog = true
-                                            return@launch
+                                             isAnalyzing = false
+                                             viewModel.showNoInternetDialog = true
+                                             return@launch
                                         }
                                         try {
                                             SecurityAnalysisEngine.checkApiHealth(context)
@@ -563,8 +561,8 @@ fun HomeScreen(
         }
         AlertDialog(
             onDismissRequest = { showLimitReachedDialog = false },
-            title = { Text(if (isHindi) "और स्कैन चाहिए?" else "Need More Scans?", fontWeight = FontWeight.Bold) },
-            text = { Text(if (isHindi) "आज की फ्री लिमिट पूरी हो गई है। +2 मैसेज स्कैन अनलॉक करने के लिए एक छोटा स्पॉन्सर्ड वीडियो देखें।" else "You've reached today's free limit. Watch one short sponsored video to instantly unlock +2 Message Scans.") },
+            title = { Text("Need More Scans?", fontWeight = FontWeight.Bold) },
+            text = { Text("You've reached today's free limit. Watch one short sponsored video to instantly unlock +2 Message Scans.") },
             confirmButton = {
                 TextButton(onClick = {
                     showLimitReachedDialog = false
@@ -583,12 +581,12 @@ fun HomeScreen(
                         )
                     }
                 }) {
-                    Text(if (isHindi) "वीडियो देखें (+2 स्कैन)" else "Watch Ad to Get +2 Scans", color = primaryBlue, fontWeight = FontWeight.Bold)
+                    Text("Watch Ad to Get +2 Scans", color = primaryBlue, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLimitReachedDialog = false }) {
-                    Text(if (isHindi) "बाद में" else "Maybe Later", color = textSecondary)
+                    Text("Maybe Later", color = textSecondary)
                 }
             }
         )
@@ -598,7 +596,7 @@ fun HomeScreen(
         AlertDialog(
             onDismissRequest = { showServiceUnavailableDialog = false },
             title = { Text("Service Unavailable", fontWeight = FontWeight.Bold) },
-            text = { Text(if (isHindi) "Scanning service अभी unavailable है। कृपया बाद में प्रयास करें।" else "The scanning service is temporarily unavailable. Please try again later.") },
+            text = { Text("The scanning service is temporarily unavailable. Please try again later.") },
             confirmButton = {
                 TextButton(onClick = { showServiceUnavailableDialog = false }) {
                     Text("OK", color = primaryBlue, fontWeight = FontWeight.Bold)

@@ -41,7 +41,6 @@ fun AnalysisLoadingScreen(
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
-    val isHindi = false
 
     // State management for API execution
     var showErrorDialog by remember { mutableStateOf<String?>(null) }
@@ -66,7 +65,7 @@ fun AnalysisLoadingScreen(
     }
 
     // 4. Checklist steps matching progress
-    val stepsEn = listOf(
+    val steps = listOf(
         "Reading your message...",
         "Understanding context...",
         "Checking suspicious language...",
@@ -77,20 +76,6 @@ fun AnalysisLoadingScreen(
         "Building security report...",
         "Analysis complete."
     )
-
-    val stepsHi = listOf(
-        "आपका संदेश पढ़ा जा रहा है...",
-        "संदर्भ समझा जा रहा है...",
-        "संदिग्ध भाषा की जांच...",
-        "जल्दबाजी के पैटर्न की खोज...",
-        "वित्तीय अनुरोधों की जांच...",
-        if (containsUrl) "लिंक की जांच की जा रही है..." else "कोई लिंक नहीं मिला",
-        "एआई सुरक्षा विश्लेषण चल रहा है...",
-        "सुरक्षा रिपोर्ट तैयार की जा रही है...",
-        "विश्लेषण पूरा हुआ।"
-    )
-
-    val steps = if (isHindi) stepsHi else stepsEn
     val totalSteps = steps.size
 
     var currentStepIndex by remember { mutableStateOf(0) }
@@ -204,8 +189,7 @@ fun AnalysisLoadingScreen(
         if (textToAnalyze.isNotEmpty()) {
             viewModel.performRealAnalysis(
                 context = context,
-                text = textToAnalyze,
-                isHindi = isHindi
+                text = textToAnalyze
             )
         }
     }
@@ -336,7 +320,7 @@ fun AnalysisLoadingScreen(
 
                 Column {
                     Text(
-                        text = if (isHindi) "एआई सुरक्षा विश्लेषण" else "AI Security Analysis",
+                        text = "AI Security Analysis",
                         style = TextStyle(
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
@@ -355,7 +339,7 @@ fun AnalysisLoadingScreen(
                                 .background(Color(0xFF30D158)) // Pulsing green online state
                         )
                         Text(
-                            text = if (isHindi) "एआई इंजन सक्रिय" else "AI Engine Active",
+                            text = "AI Engine Active",
                             style = TextStyle(
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
@@ -390,7 +374,7 @@ fun AnalysisLoadingScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isHindi) "संदेश का विश्लेषण किया जा रहा है" else "Message Being Analyzed",
+                            text = "Message Being Analyzed",
                             style = TextStyle(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -452,7 +436,7 @@ fun AnalysisLoadingScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "${textToAnalyze.length} ${if (isHindi) "वर्ण" else "chars"}",
+                            text = "${textToAnalyze.length} chars",
                             style = TextStyle(
                                 fontSize = 11.sp,
                                 color = Color.White.copy(alpha = 0.4f)
@@ -463,7 +447,7 @@ fun AnalysisLoadingScreen(
                             style = TextStyle(fontSize = 11.sp, color = Color.White.copy(alpha = 0.3f))
                         )
                         Text(
-                            text = if (isHindi) "मैनुअल इनपुट" else "Source: Manual Input",
+                            text = "Source: Manual Input",
                             style = TextStyle(
                                 fontSize = 11.sp,
                                 color = Color.White.copy(alpha = 0.4f)
@@ -518,13 +502,13 @@ fun AnalysisLoadingScreen(
                                 val status = urlProgress?.status ?: "scanning"
                                 val (statusText, statusColor, statusBg) = when {
                                     status in listOf("safe", "danger", "suspicious", "UNVERIFIED") || (urlProgress?.progress ?: 0f) >= 1.0f -> {
-                                        Triple(if (isHindi) "पूर्ण" else "Completed", Color(0xFF0A84FF), Color(0xFF0A84FF).copy(alpha = 0.15f))
+                                        Triple("Completed", Color(0xFF0A84FF), Color(0xFF0A84FF).copy(alpha = 0.15f))
                                     }
                                     status == "failed" -> {
-                                        Triple(if (isHindi) "अधूरी जांच" else "Partial Check", Color(0xFFFF9F0A), Color(0xFFFF9F0A).copy(alpha = 0.15f))
+                                        Triple("Partial Check", Color(0xFFFF9F0A), Color(0xFFFF9F0A).copy(alpha = 0.15f))
                                     }
                                     else -> {
-                                        Triple(if (isHindi) "जांच जारी..." else "Scanning...", Color(0xFF0A84FF), Color(0xFF0A84FF).copy(alpha = 0.15f))
+                                        Triple("Scanning...", Color(0xFF0A84FF), Color(0xFF0A84FF).copy(alpha = 0.15f))
                                     }
                                 }
                                 
@@ -548,9 +532,9 @@ fun AnalysisLoadingScreen(
                             val rawVerdict = urlProgress?.verdict ?: ""
                             val isFinalVerdict = urlProgress?.status in listOf("safe", "danger", "suspicious", "UNVERIFIED") || (urlProgress?.progress ?: 0f) >= 1.0f
                             val displayVerdictText = if (isFinalVerdict) {
-                                if (isHindi) "यूआरएल जांच पूरी हो गई है" else "URL analysis completed"
+                                "URL analysis completed"
                             } else {
-                                if (rawVerdict.isNotEmpty()) rawVerdict else (if (isHindi) "यूआरएल की जांच हो रही है..." else "Analyzing detected link...")
+                                if (rawVerdict.isNotEmpty()) rawVerdict else "Analyzing detected link..."
                             }
 
                             Text(
@@ -576,7 +560,7 @@ fun AnalysisLoadingScreen(
                             Spacer(modifier = Modifier.height(4.dp))
                             
                             Text(
-                                text = if (isHindi) "अंतिम परिणाम से पहले यूआरएल की जांच की जाएगी" else "URL will be checked before final scan",
+                                text = "URL will be checked before final scan",
                                 color = Color.White.copy(alpha = 0.35f),
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Normal
@@ -718,7 +702,7 @@ fun AnalysisLoadingScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isHindi) "सुरक्षा इंजन चेकलिस्ट" else "Security Engine Checklist",
+                        text = "Security Engine Checklist",
                         style = TextStyle(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
@@ -851,7 +835,7 @@ fun AnalysisLoadingScreen(
                     )
                     Spacer(modifier = Modifier.width(5.dp))
                     Text(
-                        text = if (isHindi) "विश्लेषण सुरक्षित है" else "Analysis is secure",
+                        text = "Analysis is secure",
                         style = TextStyle(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -863,7 +847,7 @@ fun AnalysisLoadingScreen(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = if (isHindi) "संदेश एन्क्रिप्टेड हैं। कोई स्थायी स्टोरेज नहीं।" else "Messages are encrypted. No permanent storage.",
+                    text = "Messages are encrypted. No permanent storage.",
                     style = TextStyle(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Normal,
@@ -877,17 +861,15 @@ fun AnalysisLoadingScreen(
         // Beautiful iOS-style Error Alert Dialog
         showErrorDialog?.let { errorType ->
             val dialogTitle = when (errorType) {
-                "INTERNET_DISCONNECTED", "CONNECTION_LOST" -> if (isHindi) "कनेक्शन त्रुटि" else "Connection Error"
-                else -> if (isHindi) "विश्लेषण विफल" else "Analysis Failed"
+                "INTERNET_DISCONNECTED", "CONNECTION_LOST" -> "Connection Error"
+                else -> "Analysis Failed"
             }
 
             val dialogMessage = when (errorType) {
                 "INTERNET_DISCONNECTED", "CONNECTION_LOST" ->
-                    if (isHindi) "कृपया अपना इंटरनेट कनेक्शन जांचें और पुनः प्रयास करें।"
-                    else "Please check your internet connection and try again."
+                    "Please check your internet connection and try again."
                 else ->
-                    if (isHindi) "सुरक्षित विश्लेषण पूरा नहीं हो सका। कृपया पुनः प्रयास करें।"
-                    else "Secure analysis could not be completed. Please try again."
+                    "Secure analysis could not be completed. Please try again."
             }
 
             AlertDialog(
@@ -924,7 +906,7 @@ fun AnalysisLoadingScreen(
                             startAnalysis()
                         }
                     ) {
-                        Text(text = if (isHindi) "पुनः प्रयास करें" else "Retry", color = Color(0xFF0A84FF), fontWeight = FontWeight.Bold)
+                        Text(text = "Retry", color = Color(0xFF0A84FF), fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
@@ -935,7 +917,7 @@ fun AnalysisLoadingScreen(
                         }
                     ) {
                         Text(
-                            text = if (isHindi) "रद्द करें" else "Cancel",
+                            text = "Cancel",
                             color = Color.White.copy(alpha = 0.4f)
                         )
                     }

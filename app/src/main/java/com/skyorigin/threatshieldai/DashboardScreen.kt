@@ -102,6 +102,7 @@ fun DashboardScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val isDark = LocalIsDark.current
+    val isHindi = viewModel.currentLanguage == "hi"
 
     val notificationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -237,7 +238,6 @@ fun DashboardScreen(
 
             // 2. New Premium Security Hero Section Card (replaces previous multi-card overview)
             item {
-                val isHindi = false
                 
                 // Infinite breathing pulsing state for active dot
                 val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -559,7 +559,6 @@ fun DashboardScreen(
 
             // 3. Quick Actions Header
             item {
-                val isHindi = false
                 Text(
                     text = if (isHindi) "Quick Actions" else "Quick Actions",
                     style = PremiumTypography.SectionTitle.copy(
@@ -574,7 +573,6 @@ fun DashboardScreen(
 
             // 4. Quick Actions 2x2 Grid of Square Cards
             item {
-                val isHindi = false
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -647,7 +645,6 @@ fun DashboardScreen(
 
             // 5. Recent Scans Header
             item {
-                val isHindi = false
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -701,7 +698,6 @@ fun DashboardScreen(
                 }
             } else if (history.isEmpty()) {
                 item {
-                    val isHindi = false
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -779,7 +775,6 @@ fun DashboardScreen(
         
         // 1. Report Scam Dialog
         if (showReportScamDialog) {
-            val isHindi = false
             AlertDialog(
                 onDismissRequest = { showReportScamDialog = false },
                 shape = RoundedCornerShape(24.dp),

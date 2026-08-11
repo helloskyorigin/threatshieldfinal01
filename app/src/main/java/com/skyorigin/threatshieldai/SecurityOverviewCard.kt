@@ -94,7 +94,7 @@ fun SecurityOverviewCard(
     modifier: Modifier = Modifier
 ) {
     val isDark = LocalIsDark.current
-    val isHindi = false
+    val isHindi = viewModel.currentLanguage == "hi"
     
     // Core color theme configurations
     val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)

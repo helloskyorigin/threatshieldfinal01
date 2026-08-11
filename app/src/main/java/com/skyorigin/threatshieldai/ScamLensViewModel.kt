@@ -632,7 +632,7 @@ class ScamLensViewModel(application: Application) : AndroidViewModel(application
     fun performRealAnalysis(
         context: Context,
         text: String,
-        isHindi: Boolean
+        isHindi: Boolean = false
     ) {
         // Guard against empty message
         val normalized = MessageNormalizer.normalize(text)
