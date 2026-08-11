@@ -79,19 +79,22 @@ class MainActivity : ComponentActivity() {
                     android.util.Log.w("MainActivity", "Consent gathering failed: ${consentError.errorCode} - ${consentError.message}")
                 }
                 try {
-                    if (consentManager.canRequestAds) {
-                        AdManager.initialize(this)
-                    }
+                    // Always initialize AdManager after consent flow completes or fails
+                    AdManager.initialize(this)
                 } catch (e: Throwable) {
                     android.util.Log.e("MainActivity", "Error in ConsentManager callback", e)
                 }
             }
             
-            if (consentManager.canRequestAds) {
-                AdManager.initialize(this)
-            }
+            // Always initialize on startup as a robust fallback
+            AdManager.initialize(this)
         } catch (e: Throwable) {
             android.util.Log.e("MainActivity", "Error initializing ConsentManager / AdManager", e)
+            try {
+                AdManager.initialize(this)
+            } catch (ex: Throwable) {
+                // Ignore fallback initialization error
+            }
         }
 
         try {

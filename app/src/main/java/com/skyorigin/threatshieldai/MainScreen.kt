@@ -111,25 +111,34 @@ fun MainScreen(
 
             Box(
                 modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(start = 14.dp, end = 14.dp, bottom = 10.dp)
                     .fillMaxWidth()
-                    .background(glassContainerColor)
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = RoundedCornerShape(20.dp),
+                            clip = false,
+                            ambientColor = if (isDark) Color.Black else Color(0x10000000),
+                            spotColor = if (isDark) Color.Black else Color(0x10000000)
+                        )
+                        .background(
+                            color = glassContainerColor,
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .border(
+                            width = 0.5.dp,
+                            color = subtleBorderColor,
+                            shape = RoundedCornerShape(20.dp)
+                        )
                 ) {
-                    // Thin premium top border
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(0.5.dp)
-                            .background(subtleBorderColor)
-                    )
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .height(58.dp),
+                            .height(66.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -146,14 +155,14 @@ fun MainScreen(
                                 targetValue = if (isSelected) {
                                     if (isDark) Color(0xFF0A84FF) else Color(0xFF007AFF) // Premium iOS System Blue accent
                                 } else {
-                                    if (isDark) Color(0xFF8E8E93) else Color(0xFF9E9E9E) // iOS style inactive system gray
+                                    if (isDark) Color(0x8CFFFFFF) else Color(0x73000000) // Soft neutral gray/black
                                 },
                                 animationSpec = tween(200),
                                 label = "tab_color"
                             )
 
                             val scale by animateFloatAsState(
-                                targetValue = if (isSelected) 1.05f else 1.00f,
+                                targetValue = if (isSelected) 1.03f else 1.00f,
                                 animationSpec = spring(
                                     dampingRatio = Spring.DampingRatioLowBouncy,
                                     stiffness = Spring.StiffnessMediumLow
@@ -162,13 +171,19 @@ fun MainScreen(
                             )
 
                             val iconScale by animateFloatAsState(
-                                targetValue = if (isSelected) 1.12f else 1.00f,
+                                targetValue = if (isSelected) 1.06f else 1.00f,
                                 animationSpec = spring(
                                     dampingRatio = Spring.DampingRatioLowBouncy,
                                     stiffness = Spring.StiffnessMediumLow
                                 ),
                                 label = "icon_scale"
                             )
+
+                            val tabBgColor = if (isSelected) {
+                                if (isDark) Color(0x140A84FF) else Color(0x0A007AFF) // Subtle translucent blue tint
+                            } else {
+                                Color.Transparent
+                            }
 
                             Box(
                                 modifier = Modifier
@@ -185,49 +200,59 @@ fun MainScreen(
                                             }
                                         },
                                         interactionSource = remember { MutableInteractionSource() },
-                                        indication = null // Custom tactile feedback to feel purely custom and elegant
+                                        indication = null
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Column(
-                                    modifier = Modifier.graphicsLayer(scaleX = scale, scaleY = scale),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = item.icon,
-                                        contentDescription = item.label,
-                                        tint = animatedColor,
-                                        modifier = Modifier
-                                            .size(23.dp)
-                                            .graphicsLayer(scaleX = iconScale, scaleY = iconScale)
-                                    )
-
-                                    Spacer(modifier = Modifier.height(2.dp))
-
-                                    Text(
-                                        text = item.label,
-                                        color = animatedColor,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 10.sp,
-                                            letterSpacing = (-0.1).sp
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 4.dp, vertical = 6.dp)
+                                        .fillMaxSize()
+                                        .background(
+                                            color = tabBgColor,
+                                            shape = RoundedCornerShape(14.dp)
                                         ),
-                                        maxLines = 1
-                                    )
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        modifier = Modifier.graphicsLayer(scaleX = scale, scaleY = scale),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = item.icon,
+                                            contentDescription = item.label,
+                                            tint = animatedColor,
+                                            modifier = Modifier
+                                                .size(22.dp)
+                                                .graphicsLayer(scaleX = iconScale, scaleY = iconScale)
+                                        )
 
-                                    Spacer(modifier = Modifier.height(3.dp))
+                                        Spacer(modifier = Modifier.height(2.dp))
 
-                                    // Elegant iOS-style micro indicator dot
-                                    Box(
-                                        modifier = Modifier
-                                            .size(3.dp)
-                                            .alpha(if (isSelected) 1f else 0f)
-                                            .background(
-                                                color = if (isDark) Color(0xFF0A84FF) else Color(0xFF007AFF),
-                                                shape = CircleShape
-                                            )
-                                    )
+                                        Text(
+                                            text = item.label,
+                                            color = animatedColor,
+                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 10.sp,
+                                                letterSpacing = (-0.1).sp
+                                            ),
+                                            maxLines = 1
+                                        )
+
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(3.dp)
+                                                .alpha(if (isSelected) 1f else 0f)
+                                                .background(
+                                                    color = if (isDark) Color(0xFF0A84FF) else Color(0xFF007AFF),
+                                                    shape = CircleShape
+                                                )
+                                        )
+                                    }
                                 }
                             }
                         }
