@@ -57,7 +57,13 @@ android {
     versionName = "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    buildConfigField("String", "URLSCAN_API_KEY", "\"\"")
+    buildConfigField("String", "GEMINI_API_KEY", "\"${getSecret("GEMINI_API_KEY", "MY_GEMINI_API_KEY")}\"")
+    buildConfigField("String", "GROQ_API_KEY", "\"${getSecret("GROQ_API_KEY", "your_api_key_here")}\"")
+    buildConfigField("String", "GOOGLE_WEB_RISK_API_KEY", "\"${getSecret("GOOGLE_WEB_RISK_API_KEY", "your_web_risk_key_here")}\"")
+    buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${getSecret("GOOGLE_WEB_CLIENT_ID", "your_firebase_web_client_id_here")}\"")
+    buildConfigField("String", "URLHAUS_API_KEY", "\"${getSecret("URLHAUS_API_KEY", "your_urlhaus_api_key_here")}\"")
+    buildConfigField("String", "PHISHTANK_API_KEY", "\"${getSecret("PHISHTANK_API_KEY", "your_phishtank_api_key_here")}\"")
+    buildConfigField("String", "URLSCAN_API_KEY", "\"${getSecret("URLSCAN_API_KEY", "")}\"")
     manifestPlaceholders["adMobAppId"] = "ca-app-pub-3940256099942544~3347511713"
   }
 
@@ -161,6 +167,15 @@ android {
 secrets {
   propertiesFileName = ".env"
   defaultPropertiesFileName = ".env.example"
+  // Ignore these keys from automatic generation so we can define them dynamically
+  // using getSecret which supports System.getenv() fallback.
+  ignoreList.add("GEMINI_API_KEY")
+  ignoreList.add("GROQ_API_KEY")
+  ignoreList.add("GOOGLE_WEB_RISK_API_KEY")
+  ignoreList.add("GOOGLE_WEB_CLIENT_ID")
+  ignoreList.add("URLHAUS_API_KEY")
+  ignoreList.add("PHISHTANK_API_KEY")
+  ignoreList.add("URLSCAN_API_KEY")
 }
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
