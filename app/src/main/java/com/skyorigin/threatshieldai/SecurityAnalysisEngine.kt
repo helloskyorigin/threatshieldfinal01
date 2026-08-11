@@ -458,8 +458,7 @@ object SecurityAnalysisEngine {
         val isGeminiActive = geminiKey.isNotEmpty() && geminiKey != "MY_GEMINI_API_KEY" && geminiKey != "your_api_key_here"
 
         if (!isGroqActive && !isGeminiActive) {
-            Log.e(TAG, "Neither Groq nor Gemini API key is configured!")
-            throw ApiErrorException("API Key is missing")
+            Log.d(TAG, "Neither Groq nor Gemini API key is configured. Using on-device security rules engine.")
         }
 
         val originalMessage = text
