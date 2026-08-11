@@ -37,6 +37,10 @@
 -dontwarn com.google.android.gms.ads.**
 -keep class com.google.android.ump.** { *; }
 -dontwarn com.google.android.ump.**
+-keep class com.google.android.gms.common.** { *; }
+-dontwarn com.google.android.gms.common.**
+-keep class com.google.android.gms.internal.ads.** { *; }
+-dontwarn com.google.android.gms.internal.ads.**
 
 # --- Firebase Rules ---
 -keep class com.google.firebase.** { *; }

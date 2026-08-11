@@ -27,6 +27,8 @@ import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
 import android.util.Log
 
+import androidx.compose.foundation.layout.defaultMinSize
+
 @Composable
 fun BannerAdComposable(modifier: Modifier = Modifier) {
     val configuration = LocalConfiguration.current
@@ -39,6 +41,7 @@ fun BannerAdComposable(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .defaultMinSize(minHeight = 60.dp) // Maintain space even if ad fails to load
             .then(
                 if (isAdLoaded) {
                     Modifier
@@ -47,7 +50,7 @@ fun BannerAdComposable(modifier: Modifier = Modifier) {
                         .background(Color.White.copy(alpha = 0.05f))
                         .padding(bottom = 8.dp)
                 } else {
-                    Modifier
+                    Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 }
             ),
         horizontalAlignment = Alignment.CenterHorizontally

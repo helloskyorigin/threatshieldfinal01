@@ -522,6 +522,7 @@ object SecurityAnalysisEngine {
                       "confidence_reason": "One short sentence explaining why.",
                       "scam_category": "OTP Scam" | "Bank Impersonation" | "Fake KYC" | "Parcel Scam" | "Lottery Scam" | "Investment Scam" | "Credential Harvesting" | "Fake Support" | "UPI Fraud" | "Refund Scam" | "Government Impersonation" | "Telecom Impersonation" | "Brand Impersonation" | "Social Engineering" | "None",
                       "short_reason": "One concise sentence summarizing the main security/scam aspect.",
+                      "ai_summary": "A detailed 2-3 sentence explanation of the security analysis.",
                       "extracted_signals": ["Concise signal 1", "Concise signal 2"],
                       "advice": ["Concise next step 1", "Concise next step 2"]
                     }
@@ -536,7 +537,7 @@ object SecurityAnalysisEngine {
 
                     OUTPUT RULES:
                     - Output ONLY valid JSON. No markdown, no explanations outside JSON, no chain-of-thought, no prefix/suffix.
-                    - Keep "short_reason", "extracted_signals", and "advice" extremely concise to minimize token usage.
+                    - Keep "short_reason", "ai_summary", "extracted_signals", and "advice" extremely concise to minimize token usage.
                 """.trimIndent()
 
                 val userPrompt = "Message to analyze: \"$normalizedMessage\"" + (if (uniqueUrls.isNotEmpty()) "\nNote: The URL(s) in this message are successfully being checked by Google Web Risk. Analyze the context of the message itself to decide if it is SAFE, SUSPICIOUS, or DANGEROUS, or UNABLE_TO_DETERMINE." else "") + (if (isHindi) " (Provide analysis in Hindi/Hinglish)" else " (Provide analysis in English)")
@@ -545,10 +546,9 @@ object SecurityAnalysisEngine {
 
                 if (isGroqActive) {
                     val models = listOf(
-                        "openai/gpt-oss-120b",
-                        "gpt-oss-120b",
                         "llama-3.3-70b-versatile",
                         "llama-3.1-8b-instant",
+                        "mixtral-8x7b-32768",
                         "gemma2-9b-it",
                         "deepseek-r1-distill-llama-70b"
                     )
@@ -843,7 +843,7 @@ object SecurityAnalysisEngine {
             
             textConfidence = aiOutput!!.optInt("confidence", 75)
             shortReason = aiOutput!!.optString("short_reason", "")
-            aiSummary = aiOutput!!.optString("summary", "").ifEmpty { shortReason }
+            aiSummary = aiOutput!!.optString("ai_summary", "").ifEmpty { aiOutput!!.optString("summary", "") }.ifEmpty { shortReason }
             
             // Derive a generic scam category since it's no longer in the schema
             scamCategory = aiOutput!!.optString("scam_category", "Unknown")
