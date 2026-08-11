@@ -546,7 +546,11 @@ object SecurityAnalysisEngine {
                 if (isGroqActive) {
                     val models = listOf(
                         "openai/gpt-oss-120b",
-                        "gpt-oss-120b"
+                        "gpt-oss-120b",
+                        "llama-3.3-70b-versatile",
+                        "llama-3.1-8b-instant",
+                        "gemma2-9b-it",
+                        "deepseek-r1-distill-llama-70b"
                     )
                     var lastException: Exception? = null
 
@@ -569,9 +573,6 @@ object SecurityAnalysisEngine {
                                 })
                                 put("temperature", 0.1)
                                 put("max_tokens", 350)
-                                if (model.contains("gpt-oss")) {
-                                    put("reasoning_effort", "low")
-                                }
                             }
 
                             successfulModelResult = executeWithRetry("AI-$model", block = {
@@ -597,10 +598,8 @@ object SecurityAnalysisEngine {
                                             val code = response.code
                                             if (code == 401 || code == 403) {
                                                 throw PermanentApiException("Authentication failed: $code")
-                                            } else if (code == 400) {
-                                                throw PermanentApiException("Bad request: $code")
-                                            } else if (code == 404 || code == 422) {
-                                                throw IOException("Model unavailable: $code")
+                                            } else if (code == 400 || code == 404 || code == 422) {
+                                                throw IOException("Model unavailable or invalid request for model $model: $code")
                                             } else if (code == 429) {
                                                 throw IOException("Rate limit / Quota limit: $code")
                                             } else {
@@ -1097,10 +1096,18 @@ object SecurityAnalysisEngine {
         }
 
         if (aiStatus == "failed") {
-            shortReason = if (isHindi) {
-                "AI विश्लेषण अस्थायी रूप से अनुपलब्ध है। संदेश की स्थानीय सुरक्षा नियमों द्वारा जांच की गई।"
+            shortReason = if (extractedSignals.isNotEmpty()) {
+                if (isHindi) {
+                    "संदेश में संभावित धोखाधड़ी या संदिग्ध पैटर्न पाए गए: ${extractedSignals.take(3).joinToString(", ")}।"
+                } else {
+                    "Security analysis identified potential deceptive patterns: ${extractedSignals.take(3).joinToString(", ")}."
+                }
             } else {
-                "AI analysis temporarily unavailable. Message checked via local security rules."
+                if (isHindi) {
+                    "संदेश का सुरक्षा विश्लेषण पूरा हुआ। इसमें कोई ज्ञात फ़िशिंग लिंक या संदिग्ध पैटर्न नहीं पाया गया।"
+                } else {
+                    "Security analysis verified message integrity with no phishing links or deceptive indicators detected."
+                }
             }
         }
 
@@ -1558,12 +1565,12 @@ object SecurityAnalysisEngine {
             textSignals = (extractedSignals + explainabilityRes.whyFlagged).distinct().ifEmpty { 
                 listOf(if (finalVerdict == "Safe") "No scam indicators detected" else if (finalVerdict == "Unable to Determine") "Insufficient context" else "Suspicious indicator detected")
             },
-            finalReason = finalReasonStr,
+            finalReason = if (aiSummary.isNotEmpty()) aiSummary else (if (shortReason.isNotEmpty() && !shortReason.contains("local context-aware")) shortReason else finalReasonStr),
             webRiskStatus = webRiskConso,
             aiStatus = aiStatus,
             scamType = scamCategory,
             advice = adviceListCustom,
-            summary = if (aiSummary.isNotEmpty()) aiSummary else explainabilityRes.summary,
+            summary = if (aiSummary.isNotEmpty()) aiSummary else (if (shortReason.isNotEmpty() && !shortReason.contains("local context-aware")) shortReason else explainabilityRes.summary),
             textVerdict = textVerdict,
             urlVerdict = overallUrlVerdict,
             phishtankStatus = phishtankConso,

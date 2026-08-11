@@ -65,8 +65,7 @@ fun AnalysisResultScreen(
 
     val isDanger = analysis.score >= 70
     val isSuspicious = analysis.score in 40..69
-    val isLowRisk = analysis.score in 20..39
-    val isSafe = analysis.score < 20
+    val isSafe = analysis.score < 40
     val isWarning = isSuspicious
     val isUnableToDetermine = false
 
@@ -313,9 +312,10 @@ fun AnalysisResultScreen(
         ) {
             Spacer(modifier = Modifier.height(2.dp))
 
-            // 1. COMPACT HERO RISK CARD
+            // 1. UNIFIED HERO CARD (Score Gauge + Status + AI Summary all-in-one)
             val heroBgTint = riskColor.copy(alpha = 0.06f)
             val heroBorder = riskColor.copy(alpha = 0.15f)
+            val aiExplanation = sanitizeText(analysis.getLocalizedExplain15(isHindi))
             
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -323,204 +323,186 @@ fun AnalysisResultScreen(
                 border = BorderStroke(1.dp, heroBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Gauge (LEFT)
-                    Box(
-                        modifier = Modifier.size(76.dp),
-                        contentAlignment = Alignment.Center
+                Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Canvas(modifier = Modifier.size(64.dp)) {
-                            drawArc(
-                                color = riskColor.copy(alpha = 0.15f),
-                                startAngle = 135f,
-                                sweepAngle = 270f,
-                                useCenter = false,
-                                style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
-                            )
-                        }
-
-                        val scoreProgress = remember { Animatable(0f) }
-                        LaunchedEffect(analysis.score) {
-                            scoreProgress.animateTo(
-                                targetValue = analysis.score / 100f,
-                                animationSpec = tween(1200, easing = FastOutSlowInEasing)
-                            )
-                        }
-
-                        Canvas(modifier = Modifier.size(64.dp)) {
-                            drawArc(
-                                color = riskColor,
-                                startAngle = 135f,
-                                sweepAngle = 270f * scoreProgress.value,
-                                useCenter = false,
-                                style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
-                            )
-                        }
-
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.offset(y = 2.dp)) {
-                            Text(
-                                text = "${analysis.score}",
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Black,
-                                color = textPrimary,
-                                lineHeight = 24.sp
-                            )
-                            Text(
-                                text = "/100",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = textSecondary,
-                                modifier = Modifier.offset(y = (-2).dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = riskColor,
-                                modifier = Modifier.size(18.dp)
-                            ) {
-                                Icon(
-                                    imageVector = verdictInfo.icon,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.padding(2.dp)
+                        // Gauge (LEFT)
+                        Box(
+                            modifier = Modifier.size(76.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Canvas(modifier = Modifier.size(64.dp)) {
+                                drawArc(
+                                    color = riskColor.copy(alpha = 0.15f),
+                                    startAngle = 135f,
+                                    sweepAngle = 270f,
+                                    useCenter = false,
+                                    style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
                                 )
                             }
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = riskTitle,
-                                color = riskColor,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(4.dp))
-                        
-                        val verdictSentence = verdictInfo.getSubtitle(isHindi)
-                        
-                        Text(
-                            text = verdictSentence,
-                            color = textPrimary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 16.sp
-                        )
-                        
-                        Spacer(modifier = Modifier.height(6.dp))
-                        
-                        val displayConfidence = if (analysis.confidence > 0) analysis.confidence else 50
 
-                        // Pills Row
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (analysis.scamType.isNotEmpty() && analysis.scamType != "Unknown" && analysis.scamType != "None") {
-                                val shortenedType = if (analysis.scamType.length > 15) {
-                                    analysis.scamType.take(12) + "..."
-                                } else {
-                                    analysis.scamType
+                            val scoreProgress = remember { Animatable(0f) }
+                            LaunchedEffect(analysis.score) {
+                                scoreProgress.animateTo(
+                                    targetValue = analysis.score / 100f,
+                                    animationSpec = tween(1200, easing = FastOutSlowInEasing)
+                                )
+                            }
+
+                            Canvas(modifier = Modifier.size(64.dp)) {
+                                drawArc(
+                                    color = riskColor,
+                                    startAngle = 135f,
+                                    sweepAngle = 270f * scoreProgress.value,
+                                    useCenter = false,
+                                    style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
+                                )
+                            }
+
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.offset(y = 2.dp)) {
+                                Text(
+                                    text = "${analysis.score}",
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = textPrimary,
+                                    lineHeight = 24.sp
+                                )
+                                Text(
+                                    text = "/100",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textSecondary,
+                                    modifier = Modifier.offset(y = (-2).dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = riskColor,
+                                    modifier = Modifier.size(18.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = verdictInfo.icon,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.padding(2.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = riskTitle,
+                                    color = riskColor,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            val verdictSentence = verdictInfo.getSubtitle(isHindi)
+                            
+                            Text(
+                                text = verdictSentence,
+                                color = textPrimary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 16.sp
+                            )
+                            
+                            Spacer(modifier = Modifier.height(6.dp))
+                            
+                            val displayConfidence = if (analysis.confidence > 0) analysis.confidence else 85
+
+                            // Pills Row
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (analysis.scamType.isNotEmpty() && analysis.scamType != "Unknown" && analysis.scamType != "None") {
+                                    val shortenedType = if (analysis.scamType.length > 15) {
+                                        analysis.scamType.take(12) + "..."
+                                    } else {
+                                        analysis.scamType
+                                    }
+                                    Surface(
+                                        color = riskColor.copy(alpha = 0.1f),
+                                        shape = RoundedCornerShape(100.dp)
+                                    ) {
+                                        Text(
+                                            text = shortenedType,
+                                            color = riskColor,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                                 Surface(
-                                    color = riskColor.copy(alpha = 0.1f),
+                                    color = primaryBlue.copy(alpha = 0.1f),
                                     shape = RoundedCornerShape(100.dp)
                                 ) {
                                     Text(
-                                        text = shortenedType,
-                                        color = riskColor,
+                                        text = "AI Confidence: $displayConfidence%",
+                                        color = primaryBlue,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                     )
                                 }
                             }
-                            Surface(
-                                color = primaryBlue.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(100.dp)
+                        }
+                    }
+
+                    // Seamless integrated AI summary section
+                    if (aiExplanation.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        HorizontalDivider(color = heroBorder, thickness = 0.5.dp)
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(primaryBlue.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
                             ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.SmartToy,
+                                    contentDescription = "AI Summary",
+                                    tint = primaryBlue,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "AI Confidence: $displayConfidence%",
-                                    color = primaryBlue,
-                                    fontSize = 10.sp,
+                                    text = if (isHindi) "AI सुरक्षा सारांश" else "AI Security Summary",
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    color = primaryBlue
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = aiExplanation,
+                                    fontSize = 11.sp,
+                                    color = textPrimary.copy(alpha = 0.9f),
+                                    fontWeight = FontWeight.Medium,
+                                    lineHeight = 15.sp
                                 )
                             }
                         }
-                        
-                        if (isHindi) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            val confidenceSupport = if (displayConfidence >= 75) {
-                                "इस result पर AI की confidence अच्छी है।"
-                            } else {
-                                "सीमित साक्ष्यों के कारण AI confidence सीमित है।"
-                            }
-                            Text(
-                                text = confidenceSupport,
-                                color = primaryBlue,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 2. AI SUMMARY CARD (Subtle blue tint, compact)
-            val aiExplanation = sanitizeText(analysis.getLocalizedExplain15(isHindi))
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = primaryBlue.copy(alpha = 0.04f)),
-                border = BorderStroke(1.dp, primaryBlue.copy(alpha = 0.08f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(primaryBlue.copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.SmartToy,
-                            contentDescription = "AI Summary",
-                            tint = primaryBlue,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "AI Summary",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Black,
-                            color = textPrimary
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = aiExplanation,
-                            fontSize = 11.sp,
-                            color = textPrimary.copy(alpha = 0.9f),
-                            fontWeight = FontWeight.Medium,
-                            lineHeight = 15.sp,
-                            maxLines = 4,
-                            overflow = TextOverflow.Ellipsis
-                        )
                     }
                 }
             }

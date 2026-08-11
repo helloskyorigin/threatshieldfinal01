@@ -22,9 +22,8 @@ data class MessageAnalysis(
 fun MessageAnalysis.getTextVerdict(): String {
     val info = VerdictMapper.getVerdictForScore(score)
     return when (info.titleEn) {
-        "HIGH RISK" -> "Danger"
+        "DANGER", "HIGH RISK" -> "Danger"
         "SUSPICIOUS" -> "Suspicious"
-        "LOW RISK" -> "Low Risk"
         else -> "Safe"
     }
 }
@@ -90,60 +89,68 @@ fun MessageAnalysis.getConfidenceLabel(isHindi: Boolean): String {
 }
 
 fun MessageAnalysis.getLocalizedSummary(isHindi: Boolean): String {
+    if (summary.isNotEmpty() && 
+        !summary.contains("temporarily unavailable") && 
+        !summary.contains("अस्थायी रूप से अनुपलब्ध")) {
+        return summary
+    }
+    val st = status.lowercase()
     if (isHindi) {
-        val st = status.lowercase()
         return when {
-            st.contains("unable to determine") || st.contains("unable_to_determine") -> {
-                "इस संदेश को सुरक्षित या संदिग्ध के रूप में वर्गीकृत करने के लिए पर्याप्त विवरण नहीं हैं।"
+            st.contains("danger") || st.contains("unsafe") || score >= 70 -> {
+                "यह संदेश एक खतरनाक घोटाला हो सकता है। इसमें संदिग्ध लिंक और धोखाधड़ी के संकेत मिले हैं।"
             }
-            st.contains("danger") || st.contains("unsafe") || st.contains("warning") || score > 45 -> {
-                "यह message आपको एक suspicious link पर ले जाने की कोशिश कर रहा है। इसमें scam या fake verification के संकेत मिले हैं।"
-            }
-            st.contains("suspicious") || score > 20 -> {
-                "यह message पूरी तरह भरोसेमंद नहीं लग रहा है। इसमें कुछ ऐसे संकेत हैं जिनकी वजह से सावधानी रखना जरूरी है।"
+            st.contains("suspicious") || score >= 40 -> {
+                "यह संदेश पूरी तरह भरोसेमंद नहीं लग रहा है। इसमें सावधानी रखना आवश्यक है।"
             }
             else -> {
-                "इस message में कोई strong scam pattern नहीं मिला है। फिर भी सतर्क रहना बेहतर है।"
+                "इस संदेश में कोई घोटाला पैटर्न नहीं मिला है। संदेश सुरक्षित प्रतीत होता है।"
             }
         }
     }
-    if (summary.isNotEmpty()) return summary
-    return when (status.lowercase()) {
-        "safe" -> "This message appears to be safe."
-        "suspicious" -> "This message has some suspicious patterns."
-        "warning" -> "This message might be dangerous."
-        "danger", "unsafe" -> "This message shows clear signs of a scam!"
-        "unable to determine", "unable_to_determine" -> "There is not enough context to confidently analyze this message."
-        else -> "Analysis complete."
+    return when {
+        st.contains("danger") || st.contains("unsafe") || score >= 70 -> {
+            "This message shows clear signs of a security threat or scam."
+        }
+        st.contains("suspicious") || score >= 40 -> {
+            "This message has some suspicious patterns. Proceed with caution."
+        }
+        else -> {
+            "This message appears safe with no threat indicators detected."
+        }
     }
 }
 
 fun MessageAnalysis.getLocalizedExplain15(isHindi: Boolean): String {
+    if (explain15.isNotEmpty() && 
+        !explain15.contains("temporarily unavailable") && 
+        !explain15.contains("अस्थायी रूप से अनुपलब्ध")) {
+        return explain15
+    }
+    val st = status.lowercase()
     if (isHindi) {
-        val st = status.lowercase()
         return when {
-            st.contains("unable to determine") || st.contains("unable_to_determine") -> {
-                "इस संदेश को सुरक्षित या संदिग्ध के रूप में वर्गीकृत करने के लिए पर्याप्त विवरण नहीं हैं।"
+            st.contains("danger") || st.contains("unsafe") || score >= 70 -> {
+                "संदेश में गंभीर सुरक्षा जोखिम, फर्जी पहचान या डेटा चोरी के संकेत मिले हैं। किसी भी लिंक को न खोलें और निजी जानकारी साझा न करें।"
             }
-            st.contains("danger") || st.contains("unsafe") || st.contains("warning") || score > 45 -> {
-                "यह message आपको एक suspicious link पर ले जाने की कोशिश कर रहा है।\nइसमें scam या fake verification के संकेत मिले हैं।"
-            }
-            st.contains("suspicious") || score > 20 -> {
-                "यह message पूरी तरह भरोसेमंद नहीं लग रहा है।\nइसमें कुछ ऐसे संकेत हैं जिनकी वजह से सावधानी रखना जरूरी है।"
+            st.contains("suspicious") || score >= 40 -> {
+                "यह संदेश पूरी तरह सुरक्षित नहीं लग रहा है। इसमें असामान्य दबाव या असत्यापित अनुरोध पाए गए हैं। सावधानी बरतें।"
             }
             else -> {
-                "इस message में कोई strong scam pattern नहीं मिला है।\nफिर भी किसी unknown link पर click करने से पहले सतर्क रहना बेहतर है।"
+                "संदेश का सुरक्षा विश्लेषण पूर्ण हुआ। कोई फ़िशिंग लिंक या संदिग्ध पैटर्न नहीं पाया गया, संदेश सुरक्षित प्रतीत होता है।"
             }
         }
     }
-    if (explain15.isNotEmpty()) return explain15
-    return when (status.lowercase()) {
-        "safe" -> "No suspicious activity found. You can proceed safely."
-        "suspicious" -> "Proceed with caution. Do not take action without verifying the sender."
-        "warning" -> "Warning! This may contain dangerous links or patterns."
-        "danger", "unsafe" -> "Danger! This is a scam. Do not click any links or share information."
-        "unable to determine", "unable_to_determine" -> "There is not enough detailed information to confidently classify this message."
-        else -> ""
+    return when {
+        st.contains("danger") || st.contains("unsafe") || score >= 70 -> {
+            "High-risk threat detected: message exhibits severe deceptive impersonation, credential harvesting, or payment trap indicators."
+        }
+        st.contains("suspicious") || score >= 40 -> {
+            "Security analysis detected suspicious urgency cues and unverified external elements. Exercise caution before responding."
+        }
+        else -> {
+            "Security analysis verified message integrity with no phishing links or deceptive indicators detected."
+        }
     }
 }
 

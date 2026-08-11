@@ -647,13 +647,12 @@ object ReportExportHelper {
             currentY += 10f
             
             val vInfoPdf1 = VerdictMapper.getVerdictForScore(analysis.score)
-            val isDanger = vInfoPdf1.titleEn == "HIGH RISK"
+            val isDanger = vInfoPdf1.titleEn == "DANGER" || vInfoPdf1.titleEn == "HIGH RISK"
             val isSuspicious = vInfoPdf1.titleEn == "SUSPICIOUS"
             
             val (bannerBg, bannerBorder, bannerTextColor) = when (vInfoPdf1.titleEn) {
-                "HIGH RISK" -> Triple(0xFFFEE2E2.toInt(), 0xFFEF4444.toInt(), 0xFF991B1B.toInt())
+                "DANGER", "HIGH RISK" -> Triple(0xFFFEE2E2.toInt(), 0xFFEF4444.toInt(), 0xFF991B1B.toInt())
                 "SUSPICIOUS" -> Triple(0xFFFEF3C7.toInt(), 0xFFF59E0B.toInt(), 0xFF92400E.toInt())
-                "LOW RISK" -> Triple(0xFFE0F2FE.toInt(), 0xFF0EA5E9.toInt(), 0xFF075985.toInt())
                 else -> Triple(0xFFD1FAE5.toInt(), 0xFF10B981.toInt(), 0xFF065F46.toInt())
             }
             
@@ -934,13 +933,12 @@ object ReportExportHelper {
             currentY += 10f
             
             val vInfoPdf2 = VerdictMapper.getVerdictForScore(analysis.score)
-            val isDanger = vInfoPdf2.titleEn == "HIGH RISK"
+            val isDanger = vInfoPdf2.titleEn == "DANGER" || vInfoPdf2.titleEn == "HIGH RISK"
             val isSuspicious = vInfoPdf2.titleEn == "SUSPICIOUS"
             
             val (bannerBg, bannerBorder, bannerTextColor) = when (vInfoPdf2.titleEn) {
-                "HIGH RISK" -> Triple(0xFFFEE2E2.toInt(), 0xFFEF4444.toInt(), 0xFF991B1B.toInt())
+                "DANGER", "HIGH RISK" -> Triple(0xFFFEE2E2.toInt(), 0xFFEF4444.toInt(), 0xFF991B1B.toInt())
                 "SUSPICIOUS" -> Triple(0xFFFEF3C7.toInt(), 0xFFF59E0B.toInt(), 0xFF92400E.toInt())
-                "LOW RISK" -> Triple(0xFFE0F2FE.toInt(), 0xFF0EA5E9.toInt(), 0xFF075985.toInt())
                 else -> Triple(0xFFD1FAE5.toInt(), 0xFF10B981.toInt(), 0xFF065F46.toInt())
             }
             
