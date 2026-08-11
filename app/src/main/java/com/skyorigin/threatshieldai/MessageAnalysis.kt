@@ -160,6 +160,8 @@ fun MessageAnalysis.getMappedSignals(isHindi: Boolean): List<String> {
 }
 
 fun MessageAnalysis.getLocalAdvice(isHindi: Boolean): List<String> {
+    if (advice.isNotEmpty()) return advice
+
     val textLower = text.lowercase()
     val isDanger = status.lowercase() in listOf("danger", "unsafe")
     val isWarning = status.lowercase() == "warning"

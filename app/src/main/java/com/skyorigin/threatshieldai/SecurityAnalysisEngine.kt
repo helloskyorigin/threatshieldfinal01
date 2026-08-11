@@ -537,10 +537,12 @@ object SecurityAnalysisEngine {
 
                     OUTPUT RULES:
                     - Output ONLY valid JSON. No markdown, no explanations outside JSON, no chain-of-thought, no prefix/suffix.
-                    - Keep "short_reason", "ai_summary", "extracted_signals", and "advice" extremely concise to minimize token usage.
+                    - Keep "short_reason", "extracted_signals", and "advice" extremely concise to minimize token usage.
+                    - Keep "ai_summary" to a maximum of 2 short lines.
+                    - Generate all string values (short_reason, ai_summary, confidence_reason, extracted_signals, advice) in the language requested by the user prompt.
                 """.trimIndent()
 
-                val userPrompt = "Message to analyze: \"$normalizedMessage\"" + (if (uniqueUrls.isNotEmpty()) "\nNote: The URL(s) in this message are successfully being checked by Google Web Risk. Analyze the context of the message itself to decide if it is SAFE, SUSPICIOUS, or DANGEROUS, or UNABLE_TO_DETERMINE." else "") + (if (isHindi) " (Provide analysis in Hindi/Hinglish)" else " (Provide analysis in English)")
+                val userPrompt = "Message to analyze: \"$normalizedMessage\"" + (if (uniqueUrls.isNotEmpty()) "\nNote: The URL(s) in this message are successfully being checked by Google Web Risk. Analyze the context of the message itself to decide if it is SAFE, SUSPICIOUS, or DANGEROUS, or UNABLE_TO_DETERMINE." else "") + (if (isHindi) " (Provide ALL JSON values in Hindi/Hinglish)" else " (Provide ALL JSON values in English)")
 
                 var successfulModelResult: JSONObject? = null
 

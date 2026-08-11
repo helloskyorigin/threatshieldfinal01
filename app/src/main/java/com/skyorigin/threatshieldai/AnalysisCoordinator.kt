@@ -54,7 +54,7 @@ object AnalysisCoordinator {
                 date = "", // formatted in UI
                 status = mapAiStatus(aiResult.verdict),
                 score = aiResult.riskScore,
-                summary = aiResult.summary.ifEmpty { 
+                summary = if (aiResult.summary.isNotEmpty()) aiResult.summary else { 
                     ExplainabilityEngine.generateExplanation(
                         verdict = aiResult.verdict,
                         riskScore = aiResult.riskScore,
@@ -65,15 +65,17 @@ object AnalysisCoordinator {
                         aiAnalysisReason = aiResult.finalReason
                     ).summary
                 },
-                reasons = ExplainabilityEngine.generateExplanation(
-                    verdict = aiResult.verdict,
-                    riskScore = aiResult.riskScore,
-                    confidence = aiResult.confidence,
-                    extractedUrls = urls,
-                    urlResults = aiResult.urlsFound,
-                    detectedIndicators = aiResult.textSignals,
-                    aiAnalysisReason = aiResult.finalReason
-                ).whyFlagged,
+                reasons = if (aiResult.textSignals.isNotEmpty()) aiResult.textSignals else {
+                    ExplainabilityEngine.generateExplanation(
+                        verdict = aiResult.verdict,
+                        riskScore = aiResult.riskScore,
+                        confidence = aiResult.confidence,
+                        extractedUrls = urls,
+                        urlResults = aiResult.urlsFound,
+                        detectedIndicators = aiResult.textSignals,
+                        aiAnalysisReason = aiResult.finalReason
+                    ).whyFlagged
+                },
                 links = urls,
                 explain15 = aiResult.finalReason,
                 timestamp = System.currentTimeMillis(),

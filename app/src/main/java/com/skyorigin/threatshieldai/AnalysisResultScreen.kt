@@ -540,7 +540,7 @@ fun AnalysisResultScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Link Security",
+                                text = if (isHindi) "लिंक सुरक्षा" else "Link Security",
                                 color = textPrimary,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Black
@@ -705,7 +705,7 @@ fun AnalysisResultScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Why This Result?",
+                            text = if (isHindi) "यह परिणाम क्यों?" else "Why This Result?",
                             color = textPrimary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Black
@@ -867,7 +867,7 @@ fun AnalysisResultScreen(
                         }
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Recommended Actions",
+                            text = if (isHindi) "सुझाए गए कदम" else "Recommended Actions",
                             color = textPrimary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Black
