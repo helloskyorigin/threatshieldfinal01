@@ -63,26 +63,42 @@ android {
 
   signingConfigs {
     create("release") {
-      // Default fallback to debug keystore to prevent Gradle build failure due to missing storeFile
-      val debugKeystoreFile = file("${rootDir}/debug.keystore")
-      if (debugKeystoreFile.exists()) {
-        storeFile = debugKeystoreFile
-        storePassword = "android"
-        keyAlias = "androiddebugkey"
-        keyPassword = "android"
-      }
+      // Unconditionally set fallback values initially to prevent Gradle configuration failures due to missing storeFile
+      val fallbackKeystore = file("${rootDir}/debug.keystore")
+      storeFile = fallbackKeystore
+      storePassword = "android"
+      keyAlias = "androiddebugkey"
+      keyPassword = "android"
 
-      // If Codemagic release signing environment variables are available, override with them
-      val cmKeystorePath: String? = System.getenv("CM_KEYSTORE_PATH") ?: System.getenv("FCI_KEYSTORE_PATH")
-      val cmKeystorePassword: String? = System.getenv("CM_KEYSTORE_PASSWORD") ?: System.getenv("FCI_KEYSTORE_PASSWORD")
-      val cmKeyAlias: String? = System.getenv("CM_KEY_ALIAS") ?: System.getenv("FCI_KEY_ALIAS")
-      val cmKeyPassword: String? = System.getenv("CM_KEY_PASSWORD") ?: System.getenv("FCI_KEY_PASSWORD")
+      // Detect if we are running in the Codemagic CI environment
+      val isCodemagic = !System.getenv("CM_BUILD_ID").isNullOrEmpty() || System.getenv("CI") == "true"
 
-      if (!cmKeystorePath.isNullOrEmpty() && !cmKeystorePassword.isNullOrEmpty() && !cmKeyAlias.isNullOrEmpty()) {
+      // If Codemagic release signing environment variables are available, consume them
+      val cmKeystorePath = System.getenv("CM_KEYSTORE_PATH") ?: System.getenv("FCI_KEYSTORE_PATH")
+      val cmKeystorePassword = System.getenv("CM_KEYSTORE_PASSWORD") ?: System.getenv("FCI_KEYSTORE_PASSWORD")
+      val cmKeyAlias = System.getenv("CM_KEY_ALIAS") ?: System.getenv("FCI_KEY_ALIAS")
+      val cmKeyPassword = System.getenv("CM_KEY_PASSWORD") ?: System.getenv("FCI_KEY_PASSWORD")
+
+      if (!cmKeystorePath.isNullOrEmpty()) {
         storeFile = file(cmKeystorePath)
-        storePassword = cmKeystorePassword
-        keyAlias = cmKeyAlias
-        keyPassword = cmKeyPassword ?: cmKeystorePassword
+        if (!cmKeystorePassword.isNullOrEmpty()) {
+          storePassword = cmKeystorePassword
+        }
+        if (!cmKeyAlias.isNullOrEmpty()) {
+          keyAlias = cmKeyAlias
+        }
+        if (!cmKeyPassword.isNullOrEmpty()) {
+          keyPassword = cmKeyPassword
+        } else if (!cmKeystorePassword.isNullOrEmpty()) {
+          keyPassword = cmKeystorePassword
+        }
+      } else if (isCodemagic) {
+        // Enforce that release builds on Codemagic fail explicitly if signing credentials are not configured
+        throw GradleException(
+          "Codemagic CI environment detected, but the 'CM_KEYSTORE_PATH' environment variable is missing or empty. " +
+          "Please ensure that the 'threatshield_production' code signing identity is correctly imported and " +
+          "referenced under 'android_signing' in your Codemagic settings."
+        )
       }
     }
     create("debugConfig") {
