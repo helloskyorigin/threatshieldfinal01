@@ -4,8 +4,8 @@
         <color android:color="#000000" />
     </item>
     <item
-        android:width="120dp"
-        android:height="120dp"
+        android:width="180dp"
+        android:height="180dp"
         android:gravity="center"
         android:drawable="@drawable/threat" />
 </layer-list>
