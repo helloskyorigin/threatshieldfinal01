@@ -539,7 +539,7 @@ object SecurityAnalysisEngine {
                     - Output ONLY valid JSON. No markdown, no explanations outside JSON, no chain-of-thought, no prefix/suffix.
                     - Keep "short_reason", "extracted_signals", and "advice" extremely concise to minimize token usage.
                     - Keep "ai_summary" to a maximum of 2 short lines.
-                    - Generate all string values (short_reason, ai_summary, confidence_reason, extracted_signals, advice) in the language requested by the user prompt.
+                    - LANGUAGE STYLE: If Hindi/Hinglish is requested, write all text in natural Hindi/Hinglish while keeping technical and English terms in English (e.g., OTP, KYC, URL, APK, Phishing, Scam, Link, Bank, Account, PIN, App, etc.).
                 """.trimIndent()
 
                 val userPrompt = "Message to analyze: \"$normalizedMessage\"" + (if (uniqueUrls.isNotEmpty()) "\nNote: The URL(s) in this message are successfully being checked by Google Web Risk. Analyze the context of the message itself to decide if it is SAFE, SUSPICIOUS, or DANGEROUS, or UNABLE_TO_DETERMINE." else "") + (if (isHindi) " (Provide ALL JSON values in Hindi/Hinglish)" else " (Provide ALL JSON values in English)")
@@ -845,15 +845,20 @@ object SecurityAnalysisEngine {
             
             textConfidence = aiOutput!!.optInt("confidence", 75)
             shortReason = aiOutput!!.optString("short_reason", "")
-            aiSummary = aiOutput!!.optString("ai_summary", "").ifEmpty { aiOutput!!.optString("summary", "") }.ifEmpty { shortReason }
+            val rawAiSummary = aiOutput!!.optString("ai_summary", "").ifEmpty { aiOutput!!.optString("summary", "") }.ifEmpty { shortReason }
+            aiSummary = if (isHindi) {
+                generateDynamicSummary(normalizedMessage, extractedSignals, rawAiSummary.ifEmpty { shortReason }, true)
+            } else {
+                rawAiSummary
+            }
             
             // Derive a generic scam category since it's no longer in the schema
-            scamCategory = aiOutput!!.optString("scam_category", "Unknown")
-            if (scamCategory == "Unknown" || scamCategory.isEmpty()) {
-                scamCategory = aiOutput!!.optString("scam_type", "Unknown")
+            var rawScamCategory = aiOutput!!.optString("scam_category", "Unknown")
+            if (rawScamCategory == "Unknown" || rawScamCategory.isEmpty()) {
+                rawScamCategory = aiOutput!!.optString("scam_type", "Unknown")
             }
-            if (scamCategory == "Unknown" || scamCategory.isEmpty()) {
-                scamCategory = if (classification == "DANGEROUS") {
+            if (rawScamCategory == "Unknown" || rawScamCategory.isEmpty()) {
+                rawScamCategory = if (classification == "DANGEROUS") {
                     "Threat Detected"
                 } else if (classification == "SUSPICIOUS") {
                     "Suspicious Message"
@@ -863,22 +868,30 @@ object SecurityAnalysisEngine {
                     "Safe Message"
                 }
             }
+            scamCategory = if (isHindi) translateScamCategoryToHindi(rawScamCategory) else rawScamCategory
             
             val signalsArr = aiOutput!!.optJSONArray("extracted_signals")
             if (signalsArr != null) {
                 for (i in 0 until signalsArr.length()) {
                     val s = signalsArr.optString(i)
-                    if (s.isNotEmpty() && !extractedSignals.contains(s)) {
-                        extractedSignals.add(s)
+                    if (s.isNotEmpty()) {
+                        val processedS = if (isHindi) translateSignalToHindi(s) else s
+                        if (!extractedSignals.contains(processedS)) {
+                            extractedSignals.add(processedS)
+                        }
                     }
                 }
             }
             
             val adviceArr = aiOutput!!.optJSONArray("advice")
-            if (adviceArr != null) {
+            if (adviceArr != null && !isHindi) {
                 for (i in 0 until adviceArr.length()) {
                     adviceList.add(adviceArr.optString(i))
                 }
+            }
+            if (adviceList.isEmpty() || isHindi) {
+                adviceList.clear()
+                adviceList.addAll(generateDynamicAdvice(normalizedMessage, extractedSignals, isHindi))
             }
             
             textScore = scamProb
@@ -2086,5 +2099,46 @@ object SecurityAnalysisEngine {
             confidence = result.confidence,
             signals = result.textSignals
         )
+    }
+
+    private fun translateSignalToHindi(signal: String): String {
+        val lower = signal.lowercase()
+        return when {
+            lower.contains("bank") && lower.contains("impersonat") -> "बैंक इम्परसोनेशन (Impersonation) धोखाधड़ी"
+            lower.contains("otp") -> "OTP स्कैम या कोड अनुरोध"
+            lower.contains("kyc") -> "नकली KYC अनुरोध"
+            lower.contains("parcel") || lower.contains("courier") || lower.contains("delivery") -> "पार्सल / कोरियर डिलीवरी स्कैम"
+            lower.contains("lottery") || lower.contains("prize") || lower.contains("reward") -> "लॉटरी या पुरस्कार प्रलोभन"
+            lower.contains("investment") || lower.contains("crypto") || lower.contains("trading") -> "इन्वेस्टमेंट / ट्रेडिंग स्कैम"
+            lower.contains("credential") || lower.contains("password") || lower.contains("harvest") -> "क्रेडेंशियल / पासवर्ड हार्वेस्टिंग"
+            lower.contains("remote") || lower.contains("anydesk") || lower.contains("teamviewer") -> "रिमोट एक्सेस ऐप (AnyDesk आदि) स्कैम"
+            lower.contains("urgency") || lower.contains("urgent") -> "तात्कालिकता (Urgency) और दबाव का tactic"
+            lower.contains("suspicious domain") || lower.contains("malicious url") -> "संदिग्ध URL या डोमेन"
+            lower.contains("government") -> "सरकारी एजेंसी की फर्जी नकल"
+            else -> signal
+        }
+    }
+
+    private fun translateScamCategoryToHindi(category: String): String {
+        val lower = category.lowercase()
+        return when {
+            lower.contains("otp") -> "OTP घोटाला (OTP Scam)"
+            lower.contains("bank") -> "बैंक इम्परसोनेशन (Bank Impersonation)"
+            lower.contains("kyc") -> "नकली KYC (Fake KYC)"
+            lower.contains("parcel") || lower.contains("courier") -> "पार्सल स्कैम (Parcel Scam)"
+            lower.contains("lottery") || lower.contains("prize") -> "लॉटरी / इनाम घोटाला (Lottery Scam)"
+            lower.contains("investment") -> "इन्वेस्टमेंट स्कैम (Investment Scam)"
+            lower.contains("credential") -> "क्रेडेंशियल फ़िशिंग (Credential Harvesting)"
+            lower.contains("support") -> "नकली कस्टमर सपोर्ट (Fake Support)"
+            lower.contains("upi") -> "यूपीआई फ्रॉड (UPI Fraud)"
+            lower.contains("refund") -> "रिफंड स्कैम (Refund Scam)"
+            lower.contains("government") -> "सरकारी प्रतिरूपण (Government Impersonation)"
+            lower.contains("telecom") -> "टेलीकॉम इम्परसोनेशन (Telecom Scam)"
+            lower.contains("brand") -> "ब्रांड इम्परसोनेशन (Brand Impersonation)"
+            lower.contains("social engineering") -> "सोशल इंजीनियरिंग (Social Engineering)"
+            lower.contains("safe") || lower.contains("legitimate") -> "वैध संदेश (Legitimate Message)"
+            lower.contains("unable") -> "अनिर्णित (Unable to Determine)"
+            else -> category
+        }
     }
 }
