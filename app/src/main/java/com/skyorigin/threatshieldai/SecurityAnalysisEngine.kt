@@ -544,7 +544,10 @@ object SecurityAnalysisEngine {
                 var successfulModelResult: JSONObject? = null
 
                 if (isGroqActive) {
-                    val models = listOf("llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768")
+                    val models = listOf(
+                        "openai/gpt-oss-120b",
+                        "gpt-oss-120b"
+                    )
                     var lastException: Exception? = null
 
                     for (model in models) {
@@ -822,6 +825,8 @@ object SecurityAnalysisEngine {
         var scamCategory = "Unknown"
         var aiClassification: String? = null
 
+        var aiSummary = ""
+
         if (aiOutput != null) {
             val scamProb = aiOutput!!.optInt("scam_probability", 0)
             var classification = if (aiOutput!!.has("classification")) {
@@ -839,6 +844,7 @@ object SecurityAnalysisEngine {
             
             textConfidence = aiOutput!!.optInt("confidence", 75)
             shortReason = aiOutput!!.optString("short_reason", "")
+            aiSummary = aiOutput!!.optString("summary", "").ifEmpty { shortReason }
             
             // Derive a generic scam category since it's no longer in the schema
             scamCategory = aiOutput!!.optString("scam_category", "Unknown")
@@ -1557,7 +1563,7 @@ object SecurityAnalysisEngine {
             aiStatus = aiStatus,
             scamType = scamCategory,
             advice = adviceListCustom,
-            summary = explainabilityRes.summary,
+            summary = if (aiSummary.isNotEmpty()) aiSummary else explainabilityRes.summary,
             textVerdict = textVerdict,
             urlVerdict = overallUrlVerdict,
             phishtankStatus = phishtankConso,
