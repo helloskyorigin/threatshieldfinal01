@@ -36,70 +36,47 @@ fun BannerAdComposable(modifier: Modifier = Modifier) {
     val adWidth = maxOf(300, configuration.screenWidthDp - 32)
     var isAdLoaded by remember { mutableStateOf(false) }
 
-    if (isAdLoaded) {
-        Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color.White.copy(alpha = 0.05f))
-                .padding(bottom = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (isAdLoaded) {
+                    Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.05f))
+                        .padding(bottom = 8.dp)
+                } else {
+                    Modifier
+                }
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (isAdLoaded) {
             Text(
                 text = "Sponsored",
                 fontSize = 10.sp,
                 color = Color.Gray,
                 modifier = Modifier
                     .align(Alignment.Start)
-                    .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
-            )
-            
-            AndroidView(
-                modifier = Modifier.fillMaxWidth(),
-                factory = { factoryContext ->
-                    AdView(factoryContext).apply {
-                        setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(factoryContext, adWidth))
-                        adUnitId = AdConstants.BANNER_AD_UNIT_ID
-                        adListener = object : AdListener() {
-                            override fun onAdLoaded() {
-                                Log.d("AdMob", "Banner ad loaded successfully")
-                                isAdLoaded = true
-                            }
-
-                            override fun onAdFailedToLoad(error: LoadAdError) {
-                                Log.e("AdMob", "Banner ad failed to load: ${error.message} (code: ${error.code}, domain: ${error.domain})")
-                                isAdLoaded = false
-                            }
-                        }
-                        loadAd(AdRequest.Builder().build())
-                    }
-                },
-                update = {
-                    // No update needed on recomposition
-                },
-                onRelease = { adView ->
-                    adView.destroy()
-                }
+                    .padding(start = 12.dp, top = 6.dp, bottom = 4.dp)
             )
         }
-    } else {
-        // Run a lightweight invisible AdView container to trigger the loading lifecycle in the background.
-        // Once onAdLoaded triggers, isAdLoaded changes to true and renders the fully-designed container.
+        
         AndroidView(
-            modifier = Modifier,
+            modifier = Modifier.fillMaxWidth(),
             factory = { factoryContext ->
                 AdView(factoryContext).apply {
                     setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(factoryContext, adWidth))
                     adUnitId = AdConstants.BANNER_AD_UNIT_ID
                     adListener = object : AdListener() {
                         override fun onAdLoaded() {
-                            Log.d("AdMob", "Background banner ad loaded successfully, transitioning to visible layout")
+                            Log.d("AdMob", "Banner ad loaded successfully")
                             isAdLoaded = true
                         }
 
                         override fun onAdFailedToLoad(error: LoadAdError) {
-                            Log.e("AdMob", "Background banner ad failed to load: ${error.message} (code: ${error.code}, domain: ${error.domain})")
+                            Log.e("AdMob", "Banner ad failed to load: ${error.message} (code: ${error.code}, domain: ${error.domain})")
                             isAdLoaded = false
                         }
                     }

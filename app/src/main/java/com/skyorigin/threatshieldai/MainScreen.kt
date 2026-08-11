@@ -87,213 +87,147 @@ fun MainScreen(
             val currentRoute = navBackStackEntry?.destination?.route ?: "dashboard"
 
             val glassContainerColor = when (currentThemeMode) {
-                ThemeMode.DARK -> Color(0xCC0B0F14)
-                ThemeMode.LIGHT -> Color(0xFFFFFFFF) // Pure white for light mode
+                ThemeMode.DARK -> Color(0xF20D1117) // Sleek iOS translucent deep dark slate
+                ThemeMode.LIGHT -> Color(0xF5F6F8FA) // Translucent clean iOS off-white
                 ThemeMode.SYSTEM -> {
-                    if (isDark) Color(0xCC0B0F14) else Color(0xFFFFFFFF)
+                    if (isDark) Color(0xF20D1117) else Color(0xF5F6F8FA)
                 }
             }
 
             val subtleBorderColor = if (isDark) {
-                Color(0xFF2E3748).copy(alpha = 0.4f)
+                Color(0x1F94A3B8) // Fine border in dark mode
             } else {
-                MaterialTheme.colorScheme.surfaceContainerHigh // #D9DEE7 divider
+                Color(0x0F000000) // Super thin iOS-style light border
+            }
+
+            val selectedIndex = when (currentRoute) {
+                "dashboard" -> 0
+                "history" -> 1
+                "scan" -> 2
+                "learn" -> 3
+                "settings" -> 4
+                else -> 0
             }
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+                    .background(glassContainerColor)
             ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(76.dp)
-                        .shadow(
-                            elevation = if (isDark) 16.dp else 0.dp, // No shadow for light mode bottom nav if we want iOS style or keep it very subtle
-                            shape = RoundedCornerShape(28.dp),
-                            clip = false,
-                            ambientColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF0F172A).copy(alpha = 0.04f),
-                            spotColor = if (isDark) Color.Black.copy(alpha = 0.7f) else Color(0xFF0F172A).copy(alpha = 0.12f)
-                        ),
-                    shape = RoundedCornerShape(28.dp),
-                    color = glassContainerColor,
-                    border = BorderStroke(1.dp, subtleBorderColor)
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    BoxWithConstraints(
-                        modifier = Modifier.fillMaxSize()
+                    // Thin premium top border
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(0.5.dp)
+                            .background(subtleBorderColor)
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .height(58.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val containerWidth = maxWidth
-                        val tabWidth = containerWidth / 5
+                        listOf(
+                            NavigationItem("dashboard", "Home", Icons.Rounded.Home),
+                            NavigationItem("history", "History", Icons.Rounded.History),
+                            NavigationItem("scan", "Analysis", Icons.Rounded.Shield),
+                            NavigationItem("learn", "Learn", Icons.Rounded.School),
+                            NavigationItem("settings", "Settings", Icons.Rounded.Settings)
+                        ).forEachIndexed { index, item ->
+                            val isSelected = index == selectedIndex
 
-                        val selectedIndex = when (currentRoute) {
-                            "dashboard" -> 0
-                            "history" -> 1
-                            "scan" -> 2
-                            "learn" -> 3
-                            "settings" -> 4
-                            else -> 0
-                        }
+                            val animatedColor by animateColorAsState(
+                                targetValue = if (isSelected) {
+                                    if (isDark) Color(0xFF0A84FF) else Color(0xFF007AFF) // Premium iOS System Blue accent
+                                } else {
+                                    if (isDark) Color(0xFF8E8E93) else Color(0xFF9E9E9E) // iOS style inactive system gray
+                                },
+                                animationSpec = tween(200),
+                                label = "tab_color"
+                            )
 
-                        val pillWidth = 56.dp
-                        val pillHeight = 32.dp
+                            val scale by animateFloatAsState(
+                                targetValue = if (isSelected) 1.05f else 1.00f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                ),
+                                label = "tab_scale"
+                            )
 
-                        val targetXOffset = (tabWidth * selectedIndex) + (tabWidth - pillWidth) / 2
-                        val animatedXOffset by animateDpAsState(
-                            targetValue = targetXOffset,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            ),
-                            label = "pill_offset"
-                        )
+                            val iconScale by animateFloatAsState(
+                                targetValue = if (isSelected) 1.12f else 1.00f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                ),
+                                label = "icon_scale"
+                            )
 
-                        // Center content of 76dp bar vertically
-                        val pillYOffset = 12.dp
-
-                        // Flat, gradient-free premium M3 active pill background
-                        Box(
-                            modifier = Modifier
-                                .offset(x = animatedXOffset, y = pillYOffset)
-                                .width(pillWidth)
-                                .height(pillHeight)
-                                .background(
-                                    brush = if (isDark) {
-                                        Brush.horizontalGradient(
-                                            colors = listOf(
-                                                Color(0xFF3B82F6).copy(alpha = 0.25f),
-                                                Color(0xFF1D4ED8).copy(alpha = 0.15f)
-                                            )
-                                        )
-                                    } else {
-                                        Brush.horizontalGradient(
-                                            colors = listOf(
-                                                Color(0xFF2563EB).copy(alpha = 0.12f),
-                                                Color(0xFF3B82F6).copy(alpha = 0.06f)
-                                            )
-                                        )
-                                    },
-                                    shape = RoundedCornerShape(16.dp)
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isDark) Color(0xFF3B82F6).copy(alpha = 0.35f) else Color(0xFF2563EB).copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(16.dp)
-                                )
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            listOf(
-                                NavigationItem("dashboard", "Home", Icons.Rounded.Home),
-                                NavigationItem("history", "History", Icons.Rounded.History),
-                                NavigationItem("scan", "Analysis", Icons.Rounded.Shield),
-                                NavigationItem("learn", "Learn", Icons.Rounded.School),
-                                NavigationItem("settings", "Settings", Icons.Rounded.Settings)
-                            ).forEachIndexed { index, item ->
-                                val isSelected = index == selectedIndex
-
-                                val animatedContentColor by animateColorAsState(
-                                    targetValue = if (isSelected) {
-                                        if (isDark) Color(0xFF60A5FA) else Color(0xFF2563EB)
-                                    } else {
-                                        if (isDark) Color(0xFF94A3B8) else Color(0xFF7C8798) // #7C8798 for unselected
-                                    },
-                                    animationSpec = tween(250),
-                                    label = "tab_color"
-                                )
-
-                                val animatedLabelColor by animateColorAsState(
-                                    targetValue = if (isSelected) {
-                                        if (isDark) Color(0xFF60A5FA) else Color(0xFF2563EB)
-                                    } else {
-                                        if (isDark) Color(0xFF94A3B8) else Color(0xFF7C8798) // #7C8798 for unselected
-                                    },
-                                    animationSpec = tween(250),
-                                    label = "label_color"
-                                )
-
-                                val scale by animateFloatAsState(
-                                    targetValue = if (isSelected) 1.05f else 1.0f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMedium
-                                    ),
-                                    label = "tab_scale"
-                                )
-
-                                val iconScale by animateFloatAsState(
-                                    targetValue = if (isSelected) 1.15f else 1.0f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMedium
-                                    ),
-                                    label = "icon_scale"
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .clip(RoundedCornerShape(20.dp))
-                                        .clickable(
-                                            onClick = {
-                                                if (currentRoute != item.route) {
-                                                    bottomNavController.navigate(item.route) {
-                                                        popUpTo(bottomNavController.graph.startDestinationId) { saveState = true }
-                                                        launchSingleTop = true
-                                                        restoreState = true
-                                                    }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clickable(
+                                        onClick = {
+                                            if (currentRoute != item.route) {
+                                                bottomNavController.navigate(item.route) {
+                                                    popUpTo(bottomNavController.graph.startDestinationId) { saveState = true }
+                                                    launchSingleTop = true
+                                                    restoreState = true
                                                 }
-                                            },
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = androidx.compose.foundation.LocalIndication.current
-                                        ),
-                                    contentAlignment = Alignment.Center
+                                            }
+                                        },
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null // Custom tactile feedback to feel purely custom and elegant
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    modifier = Modifier.graphicsLayer(scaleX = scale, scaleY = scale),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
                                 ) {
-                                    Column(
+                                    Icon(
+                                        imageVector = item.icon,
+                                        contentDescription = item.label,
+                                        tint = animatedColor,
                                         modifier = Modifier
-                                            .graphicsLayer(
-                                                scaleX = scale,
-                                                scaleY = scale
-                                            ),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(width = 56.dp, height = 32.dp)
-                                                .graphicsLayer(
-                                                    scaleX = iconScale,
-                                                    scaleY = iconScale
-                                                ),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = item.icon,
-                                                contentDescription = item.label,
-                                                tint = animatedContentColor,
-                                                modifier = Modifier.size(22.dp)
+                                            .size(23.dp)
+                                            .graphicsLayer(scaleX = iconScale, scaleY = iconScale)
+                                    )
+
+                                    Spacer(modifier = Modifier.height(2.dp))
+
+                                    Text(
+                                        text = item.label,
+                                        color = animatedColor,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 10.sp,
+                                            letterSpacing = (-0.1).sp
+                                        ),
+                                        maxLines = 1
+                                    )
+
+                                    Spacer(modifier = Modifier.height(3.dp))
+
+                                    // Elegant iOS-style micro indicator dot
+                                    Box(
+                                        modifier = Modifier
+                                            .size(3.dp)
+                                            .alpha(if (isSelected) 1f else 0f)
+                                            .background(
+                                                color = if (isDark) Color(0xFF0A84FF) else Color(0xFF007AFF),
+                                                shape = CircleShape
                                             )
-                                        }
-
-                                        Spacer(modifier = Modifier.height(2.dp))
-
-                                        Text(
-                                            text = item.label,
-                                            color = animatedLabelColor,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontSize = 10.sp,
-                                                letterSpacing = 0.1.sp
-                                            ),
-                                            maxLines = 1
-                                        )
-                                    }
+                                    )
                                 }
                             }
                         }

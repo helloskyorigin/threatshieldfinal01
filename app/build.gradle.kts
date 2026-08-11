@@ -63,20 +63,26 @@ android {
 
   signingConfigs {
     create("release") {
-      if (System.getenv("CI") == "true") {
-        val cmKeystorePath: String? = System.getenv("CM_KEYSTORE_PATH") ?: System.getenv("FCI_KEYSTORE_PATH")
-        val cmKeystorePassword: String? = System.getenv("CM_KEYSTORE_PASSWORD") ?: System.getenv("FCI_KEYSTORE_PASSWORD")
-        val cmKeyAlias: String? = System.getenv("CM_KEY_ALIAS") ?: System.getenv("FCI_KEY_ALIAS")
-        val cmKeyPassword: String? = System.getenv("CM_KEY_PASSWORD") ?: System.getenv("FCI_KEY_PASSWORD")
+      // Default fallback to debug keystore to prevent Gradle build failure due to missing storeFile
+      val debugKeystoreFile = file("${rootDir}/debug.keystore")
+      if (debugKeystoreFile.exists()) {
+        storeFile = debugKeystoreFile
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+      }
 
-        if (!cmKeystorePath.isNullOrEmpty() && !cmKeystorePassword.isNullOrEmpty() && !cmKeyAlias.isNullOrEmpty()) {
-          storeFile = file(cmKeystorePath)
-          storePassword = cmKeystorePassword
-          keyAlias = cmKeyAlias
-          keyPassword = cmKeyPassword ?: cmKeystorePassword
-        } else {
-          logger.warn("Codemagic Android release signing variables are partially missing or empty. Skipping release signing configuration.")
-        }
+      // If Codemagic release signing environment variables are available, override with them
+      val cmKeystorePath: String? = System.getenv("CM_KEYSTORE_PATH") ?: System.getenv("FCI_KEYSTORE_PATH")
+      val cmKeystorePassword: String? = System.getenv("CM_KEYSTORE_PASSWORD") ?: System.getenv("FCI_KEYSTORE_PASSWORD")
+      val cmKeyAlias: String? = System.getenv("CM_KEY_ALIAS") ?: System.getenv("FCI_KEY_ALIAS")
+      val cmKeyPassword: String? = System.getenv("CM_KEY_PASSWORD") ?: System.getenv("FCI_KEY_PASSWORD")
+
+      if (!cmKeystorePath.isNullOrEmpty() && !cmKeystorePassword.isNullOrEmpty() && !cmKeyAlias.isNullOrEmpty()) {
+        storeFile = file(cmKeystorePath)
+        storePassword = cmKeystorePassword
+        keyAlias = cmKeyAlias
+        keyPassword = cmKeyPassword ?: cmKeystorePassword
       }
     }
     create("debugConfig") {
