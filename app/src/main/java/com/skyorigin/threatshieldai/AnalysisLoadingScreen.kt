@@ -184,6 +184,10 @@ fun AnalysisLoadingScreen(
                     if (state.error == "INTERNET_DISCONNECTED" || state.error == "CONNECTION_LOST") {
                         onBack()
                     }
+                } else if (analysisResultState != null) {
+                    // Prioritize existing success result over any late/stale failure state
+                    hasFailed = false
+                    showErrorDialog = null
                 }
             }
         }
@@ -226,6 +230,10 @@ fun AnalysisLoadingScreen(
     )
 
     LaunchedEffect(currentStepIndex, isApiCallFinished, analysisResultState) {
+        if (analysisResultState != null) {
+            hasFailed = false
+            showErrorDialog = null
+        }
         if (currentStepIndex == totalSteps - 1 && isApiCallFinished && analysisResultState != null && !hasFailed) {
             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
             delay(300) // Pause briefly
