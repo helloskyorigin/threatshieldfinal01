@@ -296,6 +296,7 @@ class ScamLensViewModel(application: Application) : AndroidViewModel(application
     }
 
     var analysisJob: kotlinx.coroutines.Job? = null
+    private var currentScanToken: Long = 0L
 
     init {
         if (hasAcceptedTerms) {
@@ -643,6 +644,10 @@ class ScamLensViewModel(application: Application) : AndroidViewModel(application
 
         urlScanProgressState = null
         cancelAnalysis()
+
+        val token = System.nanoTime()
+        currentScanToken = token
+
         _scanState.value = ScanState.Scanning(null)
         
         // Log scan started event
@@ -651,9 +656,13 @@ class ScamLensViewModel(application: Application) : AndroidViewModel(application
         analysisJob = viewModelScope.launch {
             try {
                 val result = SecurityAnalysisEngine.performHybridAnalysis(context, text, isHindi) { progress ->
-                    urlScanProgressState = progress
-                    _scanState.value = ScanState.Scanning(progress)
+                    if (currentScanToken == token) {
+                        urlScanProgressState = progress
+                        _scanState.value = ScanState.Scanning(progress)
+                    }
                 }
+                if (currentScanToken != token) return@launch
+
                 val analysis = MessageAnalysis(
                     text = text,
                     date = "Just now",
@@ -696,6 +705,8 @@ class ScamLensViewModel(application: Application) : AndroidViewModel(application
                     confidence = result.confidence,
                     signals = result.textSignals
                 )
+                if (currentScanToken != token) return@launch
+
                 if (remainingScans > 0) {
                     remainingScans -= 1
                 }
@@ -710,25 +721,37 @@ class ScamLensViewModel(application: Application) : AndroidViewModel(application
             } catch (e: CancellationException) {
                 throw e
             } catch (e: InternetConnectionException) {
-                _scanState.value = ScanState.Failed("INTERNET_DISCONNECTED")
-                showNoInternetDialog = true
-                AnalyticsManager.getInstance(context).logScanFailed("INTERNET_DISCONNECTED")
+                if (currentScanToken == token && _scanState.value !is ScanState.Success) {
+                    _scanState.value = ScanState.Failed("INTERNET_DISCONNECTED")
+                    showNoInternetDialog = true
+                    AnalyticsManager.getInstance(context).logScanFailed("INTERNET_DISCONNECTED")
+                }
             } catch (e: ServiceUnavailableException) {
-                _scanState.value = ScanState.Failed("SERVICE_UNAVAILABLE")
-                AnalyticsManager.getInstance(context).logScanFailed("SERVICE_UNAVAILABLE")
+                if (currentScanToken == token && _scanState.value !is ScanState.Success) {
+                    _scanState.value = ScanState.Failed("SERVICE_UNAVAILABLE")
+                    AnalyticsManager.getInstance(context).logScanFailed("SERVICE_UNAVAILABLE")
+                }
             } catch (e: ConnectionLostException) {
-                _scanState.value = ScanState.Failed("CONNECTION_LOST")
-                showNoInternetDialog = true
-                AnalyticsManager.getInstance(context).logScanFailed("CONNECTION_LOST")
+                if (currentScanToken == token && _scanState.value !is ScanState.Success) {
+                    _scanState.value = ScanState.Failed("CONNECTION_LOST")
+                    showNoInternetDialog = true
+                    AnalyticsManager.getInstance(context).logScanFailed("CONNECTION_LOST")
+                }
             } catch (e: ApiTimeoutException) {
-                _scanState.value = ScanState.Failed("TIMEOUT")
-                AnalyticsManager.getInstance(context).logScanFailed("TIMEOUT")
+                if (currentScanToken == token && _scanState.value !is ScanState.Success) {
+                    _scanState.value = ScanState.Failed("TIMEOUT")
+                    AnalyticsManager.getInstance(context).logScanFailed("TIMEOUT")
+                }
             } catch (e: ApiErrorException) {
-                _scanState.value = ScanState.Failed("API_ERROR")
-                AnalyticsManager.getInstance(context).logScanFailed("API_ERROR")
+                if (currentScanToken == token && _scanState.value !is ScanState.Success) {
+                    _scanState.value = ScanState.Failed("API_ERROR")
+                    AnalyticsManager.getInstance(context).logScanFailed("API_ERROR")
+                }
             } catch (e: Exception) {
-                _scanState.value = ScanState.Failed("API_ERROR")
-                AnalyticsManager.getInstance(context).logScanFailed(e.message ?: "UNKNOWN_ERROR")
+                if (currentScanToken == token && _scanState.value !is ScanState.Success) {
+                    _scanState.value = ScanState.Failed("API_ERROR")
+                    AnalyticsManager.getInstance(context).logScanFailed(e.message ?: "UNKNOWN_ERROR")
+                }
             }
         }
     }
